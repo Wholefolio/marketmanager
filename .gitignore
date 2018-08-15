@@ -1,0 +1,5 @@
+**/__pycache__
+coiner.log
+static/
+.lock.coiner
+.sock.coiner
