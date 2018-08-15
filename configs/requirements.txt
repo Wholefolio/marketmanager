@@ -1,0 +1,8 @@
+django
+django_rest_framework
+django_filter
+requests
+psycopg2
+psycopg2-binary
+-e git+ssh://git@gitlab.com/atkozhuharov/daemonlib.git#egg=daemonlib
+-e git+ssh://git@gitlab.com/atkozhuharov/applib.git#egg=applib

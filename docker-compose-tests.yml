@@ -1,0 +1,47 @@
+version: '2'
+services:
+  coiner:
+    build: .
+    container_name: coiner-test
+    command: bash -c "scripts/wait_for.db.sh db-coiner-test:5432 python3 manage.py test --no-input && python3 -m src.TestStats && python3 -m src.TestCoiner && python3 -m src.TestCoinerDaemon"
+    volumes:
+      - ../coiner:/coiner
+      - /coiner/static:/coiner/static
+    expose:
+      - "8150"
+    environment:
+      - DB_HOSTNAME=db-coiner-test
+      - DB_PORT=5400
+      - DB_USERNAME=coiner
+      - DB_PASSWORD=coiner
+      - DB_DATABASE=coiner
+      - STORAGE_URL=http://storage-coiner-test:8100/
+    depends_on:
+      - storage
+      - db
+    links:
+      - storage
+      - db
+  storage:
+      image: registry.gitlab.com/cryptohunters/storage/storage:latest
+      container_name: storage-coiner-test
+      command: bash -c "python3 manage.py runserver 0.0.0.0:8100"
+      volumes:
+        - /coiner/static:/coiner/static
+      ports:
+        - 8100:8100
+      environment:
+        - DB_HOSTNAME=db
+        - DB_USERNAME=coiner
+        - DB_PASSWORD=coiner
+        - DB_DATABASE=coiner
+      links:
+        - db
+  db:
+    image: postgres:latest
+    container_name: db-coiner-test
+    environment:
+      - POSTGRES_USER=coiner
+      - POSTGRES_PASSWORD=coiner
+    expose:
+      - "5400:5432"

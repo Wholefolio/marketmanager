@@ -1,0 +1,62 @@
+stages:
+  - test
+  - release
+  - deploy
+  - migrate
+
+variables:
+  REGISTRY: "registry.gitlab.com/cryptohunters/marketmanager"
+  DB_USERNAME: marketmanager
+  DB_PASSWORD: marketmanager
+  DB_DATABASE: marketmanager
+  STAGING_DB_HOST: 192.168.13.187
+
+test-api:
+  stage: test
+  after_script:
+    - docker rm --force marketmanager_test
+  script:
+    - docker run --name marketmanager_test -e POSTGRES_USER=$DB_USERNAME -e POSTGRES_PASSWORD=$DB_PASSWORD -d postgres:latest
+    - ips=$(docker inspect marketmanager_test | grep IPAddress\" | awk -F '"' '{print $4}')
+    - ip=$(echo $ips | awk '{print $1}')
+    - export DB_HOSTNAME=$ip
+    - bash scripts/wait_for_db.sh $DB_HOSTNAME
+    - pip3 install --user -U -r configs/requirements.txt
+    - python3 manage.py test
+
+test-daemon:
+  stage: test
+  after_script:
+    - docker rm --force marketmanager_test
+  script:
+    - docker run --name marketmanager_test -e POSTGRES_USER=$DB_USERNAME -e POSTGRES_PASSWORD=$DB_PASSWORD -d postgres:latest
+    - ips=$(docker inspect marketmanager_test | grep IPAddress\" | awk -F '"' '{print $4}')
+    - ip=$(echo $ips | awk '{print $1}')
+    - export DB_HOSTNAME=$ip
+    - bash scripts/wait_for_db.sh $DB_HOSTNAME
+    - pip3 install --user -U -r configs/requirements.txt
+    - python3 manage.py test src.TestMarketManager
+
+release-image:
+    stage: release
+    before_script:
+      - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
+    script:
+      - docker build -t $REGISTRY:latest .
+      - docker tag $REGISTRY:latest $REGISTRY:${CI_PIPELINE_ID}
+      - docker push $REGISTRY:${CI_PIPELINE_ID}
+      - docker push $REGISTRY:latest
+
+deploy-internal:
+   stage: deploy
+   script:
+      - kubectl --context="internal_k8s" set image deployment/marketmanager coinermanager=$REGISTRY:${CI_PIPELINE_ID}
+
+db:migrate-staging:
+   stage: migrate
+   before_script: []
+   variables:
+     DB_HOSTNAME: "$STAGING_DB_HOST"
+   when: manual
+   script:
+      - python3 manage.py migrate
