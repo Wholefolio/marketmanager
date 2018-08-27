@@ -1,4 +1,4 @@
-from .utils import get_db_details
+from applib.tools import get_db_details_postgres
 
 
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -13,7 +13,8 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 # Production
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
-DATABASES = get_db_details()
+DATABASES = get_db_details_postgres()
 
 COINER_URL = "http://localhost:8002/api/"
-STORAGE_SOURCE_URL = "http://localhost:8000/api/sources/"
+STORAGE_EXCHANGE_URL = "http://localhost:8000/api/exchanges/"
+SUMMARIZER_EXCHANGE_URL = "http://localhost:8005/api/summarize_exchange_data/"

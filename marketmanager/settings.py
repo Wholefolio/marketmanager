@@ -18,10 +18,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Get the configuration
 ALLOWED_HOSTS = DATABASES = SECRET_KEY = COINER_URL = DEBUG\
-              = STORAGE_SOURCE_URL = None
+              = STORAGE_EXCHANGE_URL = None
 
 for setting in ['ALLOWED_HOSTS', 'DATABASES', 'SECRET_KEY', "DEBUG",
-                'COINER_URL', "STORAGE_SOURCE_URL"]:
+                'COINER_URL', "STORAGE_EXCHANGE_URL"]:
     try:
         globals()[setting] = getattr(config, setting)
     except AttributeError:

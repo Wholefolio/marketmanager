@@ -2,10 +2,10 @@
 """MarketManager daemon."""
 
 from multiprocessing import Process
-from src.marketmanager import MarketManager
+from marketmanager.marketmanager import MarketManager
 from daemonlib.tools import main
 from daemonlib.app import App
-from marketmanager.settings import MARKET_MANAGER_DAEMON
+from django.conf import settings 
 
 
 class MarketManagerApp(App):
@@ -29,4 +29,4 @@ class MarketManagerApp(App):
 
 
 if __name__ == "__main__":
-    main("marketmanager", MarketManagerApp, MARKET_MANAGER_DAEMON)
+    main("marketmanager", MarketManagerApp, settings.MARKET_MANAGER_DAEMON)

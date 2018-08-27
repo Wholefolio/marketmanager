@@ -1,6 +1,9 @@
 from django.core.management.base import BaseCommand
+from django.db.utils import IntegrityError
+import ccxt
 from api.models import Exchange
-from api.utils import create_source, get_source
+from applib.tools import appRequest
+from marketmanager.settings import STORAGE_EXCHANGE_URL
 
 
 class Command(BaseCommand):
@@ -16,36 +19,51 @@ class Command(BaseCommand):
                            help=all_help)
         parser.add_argument("--interval", action="store", dest="interval",
                             help="adapter interval", default=300)
-        parser.add_argument("--source-id", action="store", dest="source_id",
-                            help="Storage app source ID.", required=False)
+        parser.add_argument("--exchange-id", action="store",
+                            dest="exchange_id",
+                            help="Storage app exchangeID.", required=False)
+
+    def create_source(self, data):
+        result = appRequest("post", STORAGE_EXCHANGE_URL, data)
+        if not result:
+            self.stderr.write("Failed to ")
+            return False
+        return result["id"]
+
+    def create_all(self, interval):
+        for exc in ccxt.exchanges:
+            data = self.get_exchange_details(exc)
+            name = exc.capitalize()
+            exc = Exchange(name=name, interval=interval, **data)
+            try:
+                exc.save()
+                self.stdout.write("Created exchange {}".format(name))
+            except IntegrityError:
+                self.stderr.write("Exchange {} already exists".format(name))
+
+    def get_exchange_details(self, name):
+        """Create the data dict with the exchange name, api url and www url."""
+        exchange_object = getattr(ccxt, name)()
+        if isinstance(exchange_object.urls['api'], dict):
+            print(exchange_object.urls)
+            if "public" in exchange_object.urls['api']:
+                api_url = exchange_object.urls['api']['public']
+            elif "rest" in exchange_object.urls['api']:
+                api_url = exchange_object.urls['api']['rest']
+            elif "current" in exchange_object.urls['api']:
+                api_url = exchange_object.urls['api']['current']
+        else:
+            api_url = exchange_object.urls['api']
+        url = exchange_object.urls['www']
+        logo = exchange_object.urls['logo']
+        return {"api_url": api_url, "url": url, "logo": logo}
 
     def handle(self, *args, **options):
         if options["all"]:
-            pass
-        if not options.get("storage_source_id"):
-            self.stdout.write("No storage source - checking if one exists.")
-            result = get_source(options["name"])
-            if isinstance(result, int):
-                msg = "Failed getting from storage. Code: {}".format(result)
-                self.stderr.write(msg)
-                return
-            if result["count"] == 0:
-                # We don't have an existing source
-                result = create_source(options["name"])
-                if isinstance(result, int):
-                    msg = "Failed creating source in storage."
-                    msg += "Code: {}".format(result)
-                    self.stderr.write(msg)
-                    return
-                source_id = result["id"]
-            else:
-                source_id = result["results"][0]["id"]
-                msg = "Existing storage source entry: {}".format(source_id)
-                self.stdout.write(msg)
-        else:
-            source_id = options["storage_source_id"]
+            return self.create_all(options["interval"])
+        data = self.get_exchange_details(options["name"])
         exc = Exchange(name=options["name"], interval=options["interval"],
-                       storage_source_id=source_id)
+                       **data)
         exc.save()
         msg = "Exchange successfully created - {}".format(exc.id)
         self.stdout.write(self.style.SUCCESS(msg))

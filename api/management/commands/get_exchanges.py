@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from api.models import Exchange
+from api.models import Exchange, ExchangeStatus
 
 import datetime
 import ccxt
@@ -23,8 +23,11 @@ class Command(BaseCommand):
             self.stdout.write("No exchanges configured")
             return
         for exchange in exchanges:
-            msg = 'ID: {}, Name: {}, Interval: {}, Enabled: {}'.format(
+            status = ExchangeStatus.objects.get(exchange=exchange)
+            msg = 'ID: {}, Name: {}, Interval: {}, Enabled: {}, '.format(
                            exchange.id, exchange.name,
                            str(datetime.timedelta(seconds=exchange.interval)),
                            exchange.enabled)
+            msg += "Last run: {}, Running: {}".format(status.last_run,
+                                                      status.running)
             self.stdout.write(self.style.SUCCESS(msg))

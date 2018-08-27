@@ -10,8 +10,9 @@ class ExchangeSerializer(serializers.ModelSerializer):
         """Meta class to map serializer's fields with the model fields."""
 
         model = Exchange
-        fields = ('id', 'name', 'created', 'updated', 'storage_source_id',
-                  'interval', 'enabled')
+        fields = ('id', 'name', 'created', 'updated', "url", "api_url",
+                  "volume", "top_pair", "top_pair_volume", "interval",
+                  "enabled")
         read_only_fields = ('created', 'updated')
 
     def get_type(self, obj):

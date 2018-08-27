@@ -7,23 +7,22 @@ from rest_framework import status
 from django.urls import reverse
 
 
-def createExchange(instance):
-    adapter = "./tests/TestExchange.py"
-    with open(adapter, "r") as f:
-        adapter_source = f.readlines()
-    request = {"name": "TestExchange",
-               "enabled": 1,
-               "storage_source_id": 1,
-               "source_code": "".join(adapter_source),
-               "interval": 120,
-               "adapter_params": "testparam",
-               "type": "CMN",
-               }
-    response = instance.client.post(reverse("adapter-list"), request,
-                                    format="json")
-    if response.status_code != status.HTTP_201_CREATED:
-        instance.fail("Couldn't create adapter")
-    return response.json()
+def check_response_items(request, response, test_object):
+    """Check the response for missing data from the request."""
+    if response.status_code != status.HTTP_201_CREATED\
+       and response.status_code != status.HTTP_200_OK:
+        msg = "Couldn't create/patch object: {}. Response: ".format(request)
+        msg += "{}".format(response.json())
+        test_object.fail(msg)
+    if isinstance(response.json(), list):
+        response_data = response.json()["results"][0]
+    else:
+        response_data = response.json()
+    for key, value in response_data.items():
+        if response_data[key] != value:
+            msg = "Mismatch in values on creation."
+            msg += "Request: {}\nResponse:{}".format(request, response.json())
+            test_object.fail(msg)
 
 
 class StatusTestCase(TestCase):
@@ -43,49 +42,40 @@ class StatusTestCase(TestCase):
                          status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
-class ExchangeTest(TestCase):
-    """Test creating/getting/deletion of adapters."""
+class ExchangesTest(TestCase):
+    """Test the exchanges storage api."""
 
     def setUp(self):
-        """Set up an API client."""
         self.client = APIClient()
-        self.response = createExchange(self)
-        self.get = self.client.get(reverse("adapter-list"))
+        self.request = {"name": "Bittrex", "interval": 300}
+        self.response = self.client.post(reverse("api:exchange-list"),
+                                         self.request,
+                                         format="json")
+        check_response_items(self.request, self.response, self)
+        self.get = self.client.get(reverse("api:exchange-list"))
+        # Get the current ID from the get request
+        self.get_id = self.get.json()["results"][0]["id"]
 
-        self.get_id = self.get.json()[0]["id"]
-
-    def tearDown(self):
-        try:
-            to_remove = self.response["name"] + ".py"
-            os.remove(to_remove)
-        except FileNotFoundError:
-            pass
-
-    def testGetList(self):
-        """Test getting the list of adapters."""
-        self.assertEqual(self.get.status_code, status.HTTP_200_OK)
-
-    def testUpdate(self):
-        """Update an existing service."""
-        request = {"source_code": "print(\"test\")"}
-        response = self.client.patch(reverse("adapter-detail",
-                                     args=[self.get_id]),
-                                     json.dumps(request),
-                                     content_type="application/json")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    def testGet(self):
+        self.assertEqual(self.get.json()["results"][0]["name"],
+                         self.request["name"])
 
     def testDelete(self):
-        """Test deleting an existing service."""
-        response = self.client.delete(reverse("adapter-detail",
-                                              args=[self.get_id]))
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        delete = self.client.delete(reverse("api:exchange-detail",
+                                            args=[self.get_id]))
+        self.assertEqual(delete.status_code, status.HTTP_204_NO_CONTENT)
+
+    def testPatch(self):
+        request = {"url": "http://testurl.com"}
+        response = self.client.patch(reverse("api:exchange-detail",
+                                             args=[self.get_id]),
+                                     data=request)
+        check_response_items(request, response, self)
 
 
 class ExchangeStatusTest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        response = createExchange(self)
-        adapter_id = response["id"]
         request = {'adapter': adapter_id}
         self.response = self.client.post(reverse("adapterstatus-list"),
                                          data=request, format="json")

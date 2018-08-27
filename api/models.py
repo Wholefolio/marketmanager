@@ -6,19 +6,27 @@ class Exchange(models.Model):
     """Adapters model that houses the created exchanges.
 
     Fields: name, created(UNIX timestmap), last(UNIX timestamp),
-    storage_source_id - ID id of the entry in the storage app.
+    storage_exchange_id - ID id of the exchange in the storage app.
     """
-
     name = models.CharField(max_length=64, unique=True)
+    logo = models.CharField(max_length=256, null=True)
+    url = models.CharField(max_length=128, null=True)
+    api_url = models.CharField(max_length=128, null=True)
+    volume = models.FloatField(null=True)
+    top_pair = models.CharField(max_length=20, null=True)
+    top_pair_volume = models.FloatField(null=True)
+
+    last_updated = models.DateTimeField(null=True)
     enabled = models.BooleanField(default=True, blank=True)
-    storage_source_id = models.IntegerField()
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     interval = models.IntegerField()
 
     def __str__(self):
         """Return a human readable representation of the model instance."""
-        return "{}, Source: {}".format(self.name, self.storage_source_id)
+        return "{} (Interval: {}, Enabled: {})".format(self.name,
+                                                       self.interval,
+                                                       self.enabled)
 
     class Meta():
         """Define the db table name."""

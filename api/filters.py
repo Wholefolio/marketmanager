@@ -10,9 +10,11 @@ class ExchangeFilter(FilterSet):
         model = Exchange
         fields = {
             "name": ["exact"],
-            "storage_source_id": ["exact"],
+            "enabled": ["exact"],
+            "last_updated": ["lte", "gte"],
+            "volume": ["lte", "gte"],
+            "interval": ["lte", "gte", "exact"],
             "created": ["lte", "gte"],
-            "interval": ["lte", "gte"],
         }
     filter_overrides = {
             django_models.DateTimeField: {

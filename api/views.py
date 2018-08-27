@@ -4,11 +4,12 @@ import time
 from rest_framework.viewsets import ModelViewSet, ViewSet
 from rest_framework.response import Response
 from rest_framework import status
-from .utils import Client
+from applib.daemonclient import Client
 from api.models import Exchange, ExchangeStatus
 from api.serializers import ExchangeSerializer, ExchangeStatusSerializer
 from django.http import Http404
 from api.filters import ExchangeFilter, ExchangeStatusFilter
+from django.conf import settings
 
 
 def get_object(pk, exchange_name=None):
@@ -34,7 +35,7 @@ class DaemonStatus(ViewSet):
     def list(self, request):
         """Get the status of coiner daemon."""
         try:
-            client = Client()
+            client = Client(settings.MARKET_MANAGER_DAEMON['sock_file'])
             client.connect()
             output = client.getStatus(get_request_id('status'))
             return Response(output, status=status.HTTP_200_OK)
@@ -42,14 +43,15 @@ class DaemonStatus(ViewSet):
             output = "Can't connect to Coiner daemon."
             return Response(output, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except FileNotFoundError:
-            output = "Missing sock file to connect to coiner. Is it alive?"
+            output = "Marketmanager socket file not found."
             return Response(output, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 class ExchangeRun(ViewSet):
     def create(self, request, pk):
         client = Client()
-        output = client.exchangeRun(pk)
+        request = {"type": "exchange_run", "exchange_id": pk}
+        output = client.sendRequest(request)
         if output:
             return Response(output, status=status.HTTP_200_OK)
         else:

@@ -1,10 +1,11 @@
-"""Coiner Manager main module"""
+"""Market Manager - manage crypto exchange data."""
 import os
 import sys
 import pickle
 import logging.config
 import django
 from django.utils import timezone
+from django.conf import settings
 from time import sleep
 from concurrent.futures import ThreadPoolExecutor
 from socket import (socket, AF_UNIX, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR)
@@ -12,8 +13,7 @@ from socket import timeout as SOCKET_TIMEOUT
 from multiprocessing.managers import BaseManager
 
 from daemonlib.stats import get_stats_object
-from applib.coiner import coinerRequest
-from marketmanager.settings import COINER_URLS
+from applib.tools import appRequest
 
 # Set the django settings env variable and load django
 if "DJANGO_SETTINGS_MODULE" not in os.environ:
@@ -58,16 +58,16 @@ class MarketManager(object):
 
     def coinerRunExchange(self, exchange, status):
         """Send a request to coiner"""
-        data = {"name": exchange.name,
-                "storage_source_id": exchange.storage_source_id}
-        response = coinerRequest("post", COINER_URLS["exchange"], data)
+        name = exchange.name
+        data = {"name": name,
+                "storage_exchange_id": exchange.storage_exchange_id}
+        response = appRequest("post", settings.COINER_URLS["exchange"], data)
         # Check the response
         if not response:
             # No response
             return False
         # Request is successful
-        msg = "Coiner accepted run request for exchange {}.".format(
-                                                                 exchange.name)
+        msg = "Coiner accepted run request for exchange {}.".format(name)
         self.logger.info(msg)
         status.running = True
         status.last_run_id = response["id"]
@@ -92,7 +92,7 @@ class MarketManager(object):
                 return
             time_now = timezone.now().timestamp()
             start_time = status.time_started.timestamp()
-            if start_time + 100 < time_now:
+            if start_time + 10 < time_now:
                 status.running = False
         else:
             msg = "Failed to fetch exchange results from coiner!"
@@ -103,9 +103,9 @@ class MarketManager(object):
     def coinerCheckResult(self, status):
         """Check the status of an running exchange in coiner."""
         self.logger.info("Running poller check on {}".format(status.exchange))
-        url = "{}?task_id={}".format(COINER_URLS['results'],
+        url = "{}?task_id={}".format(settings.COINER_URLS['results'],
                                      status.last_run_id)
-        response = coinerRequest("get", url)
+        response = appRequest("get", url)
         if not response:
             return self.coinerNoResult(response, status)
 
@@ -135,6 +135,7 @@ class MarketManager(object):
         elif current_status == "SUCCESS":
             msg = "Exchange run for {} successfull".format(status.exchange)
             self.logger.info(msg)
+            self.summarizeMarketData(status.exchange)
         else:
             msg = "Missing exchange status for {}".format(status.exchange)
             self.logger.critical(msg)
@@ -336,3 +337,14 @@ class MarketManager(object):
             msg = "Finished running through all exchanges."
             self.logger.info(msg)
             sleep(10)
+
+    def summarizeMarketData(self, exchange):
+        """Send out a request for summarization of an exchange's data.
+
+        This request is handled by the summarization app.
+        """
+        msg = "Exchange {} - ".format(exchange.id)
+        msg += "sending request for market data summarization."
+        self.logger.info(msg)
+        data = {"storage_exchange_id": exchange.storage_exchange_id}
+        response = appRequest("post", settings.SUMMARIZER_EXCHANGE_URL, data)
