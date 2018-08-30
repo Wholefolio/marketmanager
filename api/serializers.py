@@ -12,7 +12,7 @@ class ExchangeSerializer(serializers.ModelSerializer):
         model = Exchange
         fields = ('id', 'name', 'created', 'updated', "url", "api_url",
                   "volume", "top_pair", "top_pair_volume", "interval",
-                  "enabled")
+                  "enabled", "last_updated")
         read_only_fields = ('created', 'updated')
 
     def get_type(self, obj):

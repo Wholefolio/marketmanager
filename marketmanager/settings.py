@@ -29,6 +29,15 @@ for setting in ['ALLOWED_HOSTS', 'DATABASES', 'SECRET_KEY', "DEBUG",
             "Mandatory setting {} is missing from config.".format(setting)
         )
 
+CORS_ORIGIN_WHITELIST = ["testfrontend.internal.cyanopus.com",
+                         "localhost:3000",
+                         "localhost"]
+
+
+LOG_LEVEL = "INFO"
+if DEBUG:
+    LOG_LEVEL = "DEBUG"
+
 COINER_URLS = {"adapter": "{}run_adapter/".format(COINER_URL),
                "exchange": "{}fetch_exchange_data/".format(COINER_URL),
                "results": "{}get_results/".format(COINER_URL)}
@@ -48,13 +57,13 @@ MARKET_MANAGER_DAEMON = {
                      "handlers": {
                          "log_handler": {
                             "class": "logging.StreamHandler",
-                            "level": "INFO",
+                            "level": LOG_LEVEL,
                             "formatter": "simple",
                             "stream": "ext://sys.stderr"
                             }
                      },
                      "root": {
-                         "level": "DEBUG",
+                         "level": LOG_LEVEL,
                          "handlers": ["log_handler"]
                      }
                  }
@@ -65,7 +74,11 @@ USE_X_FORWARDED_PORT = True
 
 # REST framework configuration
 REST_FRAMEWORK = {
-  'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination'
+     'DEFAULT_FILTER_BACKENDS':
+        ('django_filters.rest_framework.DjangoFilterBackend',),
+     'DEFAULT_PAGINATION_CLASS':
+        'rest_framework.pagination.LimitOffsetPagination',
+     'PAGE_SIZE': 10000
 }
 # Application definition
 INSTALLED_APPS = [
@@ -76,6 +89,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'corsheaders',
+    'django_filters',
     'api',
 ]
 
@@ -84,6 +99,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',

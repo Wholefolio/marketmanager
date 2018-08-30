@@ -58,12 +58,15 @@ class MarketManager(object):
 
     def coinerRunExchange(self, exchange, status):
         """Send a request to coiner"""
+        msg = "Sending request to coiner for {}".format(exchange.name)
+        self.logger.info(msg)
         name = exchange.name
-        data = {"name": name,
-                "storage_exchange_id": exchange.storage_exchange_id}
+        data = {"name": name, "exchange_id": exchange.id}
         response = appRequest("post", settings.COINER_URLS["exchange"], data)
         # Check the response
-        if not response:
+        if "error" in response:
+            msg = "Exchange run failed with: {}".format(response["error"])
+            self.logger.error(msg)
             # No response
             return False
         # Request is successful
@@ -135,7 +138,6 @@ class MarketManager(object):
         elif current_status == "SUCCESS":
             msg = "Exchange run for {} successfull".format(status.exchange)
             self.logger.info(msg)
-            self.summarizeMarketData(status.exchange)
         else:
             msg = "Missing exchange status for {}".format(status.exchange)
             self.logger.critical(msg)
@@ -143,16 +145,13 @@ class MarketManager(object):
         status.last_run = timezone.now()
         status.running = False
         status.save()
+        # self.summarizeMarketData(status.exchange)
         return True
 
     def checkExchange(self, exchange, status):
         """Check if the exchange data is meant to be fetched."""
         if status.running:
             msg = "Exchange fetch running: {}. Skipping.".format(exchange.name)
-            self.logger.info(msg)
-            return False
-        if not exchange.enabled:
-            msg = "Exchange {} is disabled. Skipping".format(exchange.name)
             self.logger.info(msg)
             return False
         if status.last_run:
@@ -166,7 +165,7 @@ class MarketManager(object):
             self.logger.debug(msg)
             if last_run + interval >= current_time:
                 return False
-        msg = "exchange {} must run NOW!".format(exchange.name)
+        msg = "Exchange {} must run NOW!".format(exchange.name)
         self.logger.info(msg)
         return True
 
@@ -194,7 +193,8 @@ class MarketManager(object):
         if result:
             msg = "Coiner has accepted exchange manual run!"
             self.logger.info(msg)
-            return status
+            print(msg)
+            return msg
         self.logger.info("Coiner couldn't handle manual run request")
         return False
 
@@ -267,9 +267,9 @@ class MarketManager(object):
                 self.logger.info("Server shutting down")
 
     def getExchanges(self, exchange_id=None):
-        """Get all exchanges from the db."""
+        """Get the enabled exchanges from the db."""
         if not exchange_id:
-            return Exchange.objects.all()
+            return Exchange.objects.filter(enabled=True)
         return Exchange.objects.filter(pk=exchange_id)
 
     def getExchangeStatus(self, exchange_id):
@@ -285,19 +285,12 @@ class MarketManager(object):
         self.stats.update('running', True, parent='poller')
         self.logger.info("Starting poller.")
         while self.stats.get("running", parent="main"):
-            exchanges = self.getExchanges()
-            self.logger.info("Got exchanges: {}".format(exchanges))
-            if not exchanges:
+            statuses = ExchangeStatus.objects.filter(running=True)
+            self.logger.info("Got statuses: {}".format(statuses))
+            if not statuses:
                 sleep(5)
                 continue
-            for exchange in exchanges:
-                if not exchange.enabled:
-                    # Exchange is disabled - skip
-                    continue
-                # Get the exchange status
-                status = self.getExchangeStatus(exchange.id)
-                if not status.running:
-                    continue
+            for status in statuses:
                 if not status.last_run_id:
                     continue
                 self.coinerCheckResult(status)
@@ -323,9 +316,6 @@ class MarketManager(object):
                 continue
             for exchange in exchanges:
                 status = self.getExchangeStatus(exchange.id)
-                if status.running:
-                    msg = "exchange {} is running.".format(exchange.name)
-                    continue
                 should_run = self.checkExchange(exchange, status)
                 if not should_run:
                     continue
@@ -343,8 +333,9 @@ class MarketManager(object):
 
         This request is handled by the summarization app.
         """
+        url = getattr(settings, "SUMMARIZER_EXCHANGE_URL")
         msg = "Exchange {} - ".format(exchange.id)
         msg += "sending request for market data summarization."
         self.logger.info(msg)
-        data = {"storage_exchange_id": exchange.storage_exchange_id}
+        data = {"exchange_id": exchange.id}
         response = appRequest("post", settings.SUMMARIZER_EXCHANGE_URL, data)

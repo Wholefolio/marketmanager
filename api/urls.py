@@ -10,6 +10,6 @@ router.register(r"exchange_statuses", views.ExchangeStatusViewSet)
 router.register(r"daemon_status", views.DaemonStatus, base_name="status")
 
 urlpatterns = router.urls
-urlpatterns.append(url(r'^adapters/(?P<pk>[0-9]+)/run/',
+urlpatterns.append(url(r'^exchanges/(?P<pk>[0-9]+)/run/',
                        views.ExchangeRun.as_view({'post': 'create'}),
                        name="adapter_run"))

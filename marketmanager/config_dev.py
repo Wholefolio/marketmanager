@@ -15,6 +15,6 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 DATABASES = get_db_details_postgres()
 
-COINER_URL = "http://localhost:8002/api/"
+COINER_URL = "http://localhost:8003/api/"
 STORAGE_EXCHANGE_URL = "http://localhost:8000/api/exchanges/"
 SUMMARIZER_EXCHANGE_URL = "http://localhost:8005/api/summarize_exchange_data/"

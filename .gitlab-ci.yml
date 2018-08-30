@@ -42,7 +42,7 @@ release-image:
     before_script:
       - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
     script:
-      - docker build -t $REGISTRY:latest .
+      - docker build --build-arg SSH_PRIVATE_KEY="${SSH_PRIVATE_KEY}" -t $REGISTRY:latest .
       - docker tag $REGISTRY:latest $REGISTRY:${CI_PIPELINE_ID}
       - docker push $REGISTRY:${CI_PIPELINE_ID}
       - docker push $REGISTRY:latest
@@ -50,7 +50,7 @@ release-image:
 deploy-internal:
    stage: deploy
    script:
-      - kubectl --context="internal_k8s" set image deployment/marketmanager coinermanager=$REGISTRY:${CI_PIPELINE_ID}
+      - kubectl --context="crypto-testing" set image deployment/marketmanager coinermanager=$REGISTRY:${CI_PIPELINE_ID}
 
 db:migrate-staging:
    stage: migrate

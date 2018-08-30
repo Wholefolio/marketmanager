@@ -16,11 +16,6 @@ class ExchangeFilter(FilterSet):
             "interval": ["lte", "gte", "exact"],
             "created": ["lte", "gte"],
         }
-    filter_overrides = {
-            django_models.DateTimeField: {
-                "filter_class": IsoDateTimeFilter
-            }
-    }
 
 
 class ExchangeStatusFilter(FilterSet):

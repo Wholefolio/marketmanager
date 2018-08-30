@@ -2,8 +2,6 @@ from django.core.management.base import BaseCommand
 from django.db.utils import IntegrityError
 import ccxt
 from api.models import Exchange
-from applib.tools import appRequest
-from marketmanager.settings import STORAGE_EXCHANGE_URL
 
 
 class Command(BaseCommand):
@@ -22,13 +20,6 @@ class Command(BaseCommand):
         parser.add_argument("--exchange-id", action="store",
                             dest="exchange_id",
                             help="Storage app exchangeID.", required=False)
-
-    def create_source(self, data):
-        result = appRequest("post", STORAGE_EXCHANGE_URL, data)
-        if not result:
-            self.stderr.write("Failed to ")
-            return False
-        return result["id"]
 
     def create_all(self, interval):
         for exc in ccxt.exchanges:

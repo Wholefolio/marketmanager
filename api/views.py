@@ -4,12 +4,15 @@ import time
 from rest_framework.viewsets import ModelViewSet, ViewSet
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.filters import OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
+from django.conf import settings
+from django.http import Http404
+
 from applib.daemonclient import Client
 from api.models import Exchange, ExchangeStatus
 from api.serializers import ExchangeSerializer, ExchangeStatusSerializer
-from django.http import Http404
 from api.filters import ExchangeFilter, ExchangeStatusFilter
-from django.conf import settings
 
 
 def get_object(pk, exchange_name=None):
@@ -49,7 +52,8 @@ class DaemonStatus(ViewSet):
 
 class ExchangeRun(ViewSet):
     def create(self, request, pk):
-        client = Client()
+        client = Client(settings.MARKET_MANAGER_DAEMON['sock_file'])
+        client.connect()
         request = {"type": "exchange_run", "exchange_id": pk}
         output = client.sendRequest(request)
         if output:
@@ -72,3 +76,5 @@ class ExchangeStatusViewSet(ModelViewSet):
     queryset = ExchangeStatus.objects.all()
     serializer_class = ExchangeStatusSerializer
     filter_class = ExchangeStatusFilter
+    filter_backends = (DjangoFilterBackend, OrderingFilter)
+    ordering_fields = ('name', 'volume', 'top_pair_volume', 'top_pair')
