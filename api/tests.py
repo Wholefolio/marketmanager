@@ -31,7 +31,7 @@ class StatusTestCase(TestCase):
     def setUp(self):
         """Define the test client and other test variables."""
         self.client = APIClient()
-        self.response = self.client.get(reverse('status-list'))
+        self.response = self.client.get(reverse('api:daemonstatus-list'))
 
     def testStatusGet(self):
         """Test the get response.
@@ -76,14 +76,9 @@ class ExchangesTest(TestCase):
 class ExchangeStatusTest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        request = {'adapter': adapter_id}
-        self.response = self.client.post(reverse("adapterstatus-list"),
-                                         data=request, format="json")
-        if self.response.status_code != status.HTTP_201_CREATED:
-            msg = "Didn't create adapterstatus.{}".format(self.response.json())
-            self.fail(msg)
-        self.get = self.client.get(reverse("adapterstatus-list"))
-        self.get_id = self.get.json()[0]["id"]
+        self.get = self.client.get(reverse("api:exchangestatus-list"),
+                                         format="json")
+
 
     def testGetList(self):
         """Test getting the list of adapters."""

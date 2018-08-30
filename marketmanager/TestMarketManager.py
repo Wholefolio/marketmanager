@@ -1,7 +1,6 @@
 """MarketManager class test suite."""
 import unittest
 from unittest.mock import patch
-from requests.exceptions import ConnectionError, Timeout
 import os
 import time
 import pickle
@@ -31,8 +30,7 @@ class TestMarketManager(unittest.TestCase):
 
     def setUp(self):
         self.manager = MarketManager(**config)
-        self.exchange = Exchange(name="TestExchange", storage_exchange_id=1,
-                                 interval=300)
+        self.exchange = Exchange(name="TestExchange", interval=300)
         self.exchange.save()
         self.status = ExchangeStatus(exchange=self.exchange)
         self.status.save()
@@ -167,7 +165,7 @@ class TestMarketManager(unittest.TestCase):
         """Test running an adapter through this method."""
         mock_item.return_value = True
         result = self.manager.handleRunRequest(self.exchange.id)
-        self.assertTrue(isinstance(result, ExchangeStatus))
+        self.assertTrue(isinstance(result, str))
 
     @patch(marketmanager.__name__ + ".MarketManager.coinerRunExchange")
     def testHandleRunRequest_FalseResult(self, mock_item):
@@ -180,7 +178,7 @@ class TestMarketManager(unittest.TestCase):
     def testMain_WithExchange(self, mock_item):
         """Test the main process with no adapters."""
         mock_item.return_value = get_json()
-        exchange = Exchange(name="Test", interval=30, storage_exchange_id=2)
+        exchange = Exchange(name="Test", interval=30)
         exchange.save()
         p = mp.Process(target=self.manager.main)
         p.start()
@@ -199,7 +197,7 @@ class TestMarketManager(unittest.TestCase):
 
     @patch("marketmanager.marketmanager.appRequest")
     def testcoinerRunExchange_BadResponse(self, mock_item):
-        mock_item.return_value = False
+        mock_item.return_value = {"error": "400 Bad request"}
         resp = self.manager.coinerRunExchange(self.exchange, self.status)
         self.assertFalse(resp)
 

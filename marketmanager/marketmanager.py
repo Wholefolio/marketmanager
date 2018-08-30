@@ -145,11 +145,14 @@ class MarketManager(object):
         status.last_run = timezone.now()
         status.running = False
         status.save()
-        # self.summarizeMarketData(status.exchange)
         return True
 
     def checkExchange(self, exchange, status):
         """Check if the exchange data is meant to be fetched."""
+        if not exchange.enabled:
+            msg = "Exchange {} is disabled: Skipping".format(exchange.name)
+            self.logger.info(msg)
+            return False
         if status.running:
             msg = "Exchange fetch running: {}. Skipping.".format(exchange.name)
             self.logger.info(msg)
@@ -193,7 +196,6 @@ class MarketManager(object):
         if result:
             msg = "Coiner has accepted exchange manual run!"
             self.logger.info(msg)
-            print(msg)
             return msg
         self.logger.info("Coiner couldn't handle manual run request")
         return False
@@ -308,6 +310,7 @@ class MarketManager(object):
         """
         self.stats.update("running", True, parent="main")
         self.logger.info("Starting main event loop.")
+
         while self.stats.get("running", parent="main"):
             exchanges = self.getExchanges()
             self.logger.info("Got exchanges: {}".format(exchanges))
@@ -327,15 +330,3 @@ class MarketManager(object):
             msg = "Finished running through all exchanges."
             self.logger.info(msg)
             sleep(10)
-
-    def summarizeMarketData(self, exchange):
-        """Send out a request for summarization of an exchange's data.
-
-        This request is handled by the summarization app.
-        """
-        url = getattr(settings, "SUMMARIZER_EXCHANGE_URL")
-        msg = "Exchange {} - ".format(exchange.id)
-        msg += "sending request for market data summarization."
-        self.logger.info(msg)
-        data = {"exchange_id": exchange.id}
-        response = appRequest("post", settings.SUMMARIZER_EXCHANGE_URL, data)
