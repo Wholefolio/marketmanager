@@ -35,7 +35,7 @@ test-daemon:
     - export DB_HOSTNAME=$ip
     - bash scripts/wait_for_db.sh $DB_HOSTNAME
     - pip3 install --user -U -r configs/requirements.txt
-    - python3 manage.py test src.TestMarketManager
+    - python3 manage.py test marketmanager.TestMarketManager
 
 release-image:
     stage: release
