@@ -38,10 +38,15 @@ LOG_LEVEL = "INFO"
 if DEBUG:
     LOG_LEVEL = "DEBUG"
 
-COINER_URLS = {"adapter": "{}run_adapter/".format(COINER_URL),
-               "exchange": "{}fetch_exchange_data/".format(COINER_URL),
-               "results": "{}get_results/".format(COINER_URL)}
-# Coiner daemon config
+COINER_URLS = {
+    "adapter": "{}run_adapter/".format(COINER_URL),
+    "exchange": "{}fetch_exchange_data/".format(COINER_URL),
+    "available-exchanges": "{}available_exchanges/".format(COINER_URL),
+    "exchange-details": "{}exchange_details/".format(COINER_URL),
+    "results": "{}get_results/".format(COINER_URL)
+    }
+
+# Daemon config
 MARKET_MANAGER_DAEMON = {
                  "threads": 2,
                  "lock_file": "/tmp/.lock.marketmanager",

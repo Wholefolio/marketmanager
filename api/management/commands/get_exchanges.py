@@ -1,8 +1,9 @@
 from django.core.management.base import BaseCommand
-from api.models import Exchange, ExchangeStatus
-
+from django.conf import settings
 import datetime
-import ccxt
+import requests
+
+from api.models import Exchange, ExchangeStatus
 
 
 class Command(BaseCommand):
@@ -20,7 +21,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options["available"]:
             self.stdout.write("All Current CCXT Exchanges:")
-            self.stdout.write("\n".join(ccxt.exchanges))
+            url = settings.COINER_URLS.get("available-exchanges")
+            exchanges = requests.get(url).json().get("exchanges")
+            self.stdout.write("\n".join(exchanges))
             return "Finished running through available exchanges."
         exchanges = Exchange.objects.all()
         if not exchanges:

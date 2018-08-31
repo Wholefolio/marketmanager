@@ -47,5 +47,4 @@ db:migrate-staging:
      PY_ENV: "staging"
    when: manual
    script:
-      - pip3 install --user -r -configs/requirements.txt
       - python3 manage.py migrate
