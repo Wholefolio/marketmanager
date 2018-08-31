@@ -11,7 +11,7 @@ variables:
   DB_DATABASE: marketmanager
   STAGING_DB_HOST: 192.168.13.187
 
-test-api:
+unittests:
   stage: test
   after_script:
     - docker rm --force marketmanager_test
@@ -23,19 +23,6 @@ test-api:
     - bash scripts/wait_for_db.sh $DB_HOSTNAME
     - pip3 install --user -U -r configs/requirements.txt
     - python3 manage.py test
-
-test-daemon:
-  stage: test
-  after_script:
-    - docker rm --force marketmanager_test
-  script:
-    - docker run --name marketmanager_test -e POSTGRES_USER=$DB_USERNAME -e POSTGRES_PASSWORD=$DB_PASSWORD -d postgres:latest
-    - ips=$(docker inspect marketmanager_test | grep IPAddress\" | awk -F '"' '{print $4}')
-    - ip=$(echo $ips | awk '{print $1}')
-    - export DB_HOSTNAME=$ip
-    - bash scripts/wait_for_db.sh $DB_HOSTNAME
-    - pip3 install --user -U -r configs/requirements.txt
-    - python3 manage.py test marketmanager.TestMarketManager
 
 release-image:
     stage: release
@@ -50,7 +37,7 @@ release-image:
 deploy-internal:
    stage: deploy
    script:
-      - kubectl --context="crypto-testing" set image deployment/marketmanager coinermanager=$REGISTRY:${CI_PIPELINE_ID}
+      - kubectl --context="crypto-testing" set image deployment/marketmanager marketmanager=$REGISTRY:${CI_PIPELINE_ID}
 
 db:migrate-staging:
    stage: migrate
