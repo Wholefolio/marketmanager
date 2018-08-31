@@ -3,7 +3,7 @@ from generate_secret_key import generate
 from applib.tools import get_db_details_postgres
 
 
-SECRET_KEY = generate()
+SECRET_KEY = environ.get("SECRET_KEY", None)
 DEBUG = environ.get("MARKET_MANAGER_DEBUG", False)
 
 # Specify the allowed hosts for the app
