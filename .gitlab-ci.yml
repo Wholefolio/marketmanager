@@ -44,6 +44,8 @@ db:migrate-staging:
    before_script: []
    variables:
      DB_HOSTNAME: "$STAGING_DB_HOST"
+     PY_ENV: "staging"
    when: manual
    script:
+      - pip3 install --user -r -configs/requirements.txt
       - python3 manage.py migrate
