@@ -51,7 +51,7 @@ class Command(BaseCommand):
         exc = Exchange(name=options["name"], interval=options["interval"],
                        **data)
         exc.save()
-        status = ExchangeStatus(exchnage=exc)
+        status = ExchangeStatus(exchange=exc)
         status.save()
         msg = "Exchange successfully created - {}".format(exc.id)
         self.stdout.write(self.style.SUCCESS(msg))
