@@ -125,7 +125,7 @@ class MarketManager(object):
                 return
             time_now = timezone.now().timestamp()
             start_time = status.time_started.timestamp()
-            if start_time + 600 < time_now:
+            if start_time + 120 < time_now:
                 status.running = False
                 status.last_run_status = "STUCK"
             else:
