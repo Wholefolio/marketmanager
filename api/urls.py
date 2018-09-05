@@ -8,6 +8,7 @@ router = routers.DefaultRouter()
 
 router.register(r"exchanges", views.ExchangeViewSet)
 router.register(r"exchange_statuses", views.ExchangeStatusViewSet)
+router.register(r"markets", views.MarketViewSet)
 router.register(r"daemon_status", views.DaemonStatus, base_name="daemonstatus")
 
 urlpatterns = router.urls

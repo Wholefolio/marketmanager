@@ -11,11 +11,10 @@ class Command(BaseCommand):
     help = "Add an exchange for scheduling(must be available in CCXT)."
 
     def add_arguments(self, parser):
-        all_help = "This will add all available exchanges and create\
-                    sources for them in the storage APP."
+        all_help = "This will add all available exchanges"
         group = parser.add_mutually_exclusive_group(required=True)
         group.add_argument("--name", action="store", dest="name",
-                           help="source code file")
+                           help="name of the exchange")
         group.add_argument("--all", action="store_true", dest="all",
                            help=all_help)
         parser.add_argument("--interval", action="store", dest="interval",
@@ -25,7 +24,7 @@ class Command(BaseCommand):
                             help="marketmanager host", default=300)
         parser.add_argument("--exchange-id", action="store",
                             dest="exchange_id",
-                            help="Storage app exchangeID.", required=False)
+                            help="Exchange ID on remote host.", required=False)
 
     def create_all(self, interval):
         url = settings.COINER_URLS.get("available-exchanges")

@@ -1,6 +1,6 @@
 from django.db import models as django_models
 from django_filters import FilterSet, IsoDateTimeFilter
-from api.models import Exchange, ExchangeStatus
+from api.models import Exchange, ExchangeStatus, Market
 
 
 class ExchangeFilter(FilterSet):
@@ -15,6 +15,22 @@ class ExchangeFilter(FilterSet):
             "volume": ["lte", "gte"],
             "interval": ["lte", "gte", "exact"],
             "created": ["lte", "gte"],
+        }
+
+
+class MarketFilter(FilterSet):
+    class Meta:
+        model = Market
+        fields = {
+            "id": ["exact"],
+            "exchange": ["exact"],
+            "name": ["exact"],
+            "base": ["exact"],
+            "quote": ["exact"],
+            "volume": ["lte", "gte"],
+            "last": ["lte", "gte"],
+            "bid": ["lte", "gte"],
+            "ask": ["lte", "gte"]
         }
 
 

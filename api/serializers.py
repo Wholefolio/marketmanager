@@ -1,6 +1,6 @@
 """Serializers module."""
 from rest_framework import serializers
-from .models import Exchange, ExchangeStatus
+from .models import Exchange, ExchangeStatus, Market
 
 
 class ExchangeSerializer(serializers.ModelSerializer):
@@ -17,6 +17,14 @@ class ExchangeSerializer(serializers.ModelSerializer):
 
     def get_type(self, obj):
         return obj.get_type_display()
+
+
+class MarketSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Market
+        fields = ("id", "name", "exchange", "volume", "last", "bid", "ask",
+                  "base", "quote")
 
 
 class ExchangeStatusSerializer(serializers.ModelSerializer):

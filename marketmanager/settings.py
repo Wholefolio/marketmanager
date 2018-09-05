@@ -1,6 +1,6 @@
 """MarketManager main settings."""
-
 import os
+import sys
 from django.core.exceptions import ImproperlyConfigured
 
 env = os.environ.get('PY_ENV')
@@ -33,6 +33,11 @@ CORS_ORIGIN_WHITELIST = ["testfrontend.internal.cyanopus.com",
                          "localhost:3000",
                          "localhost"]
 
+CACHE_TTL = 60
+if "test" in sys.argv:
+    # Don't cache while testing
+    pass
+CACHE_TTL = 0
 
 LOG_LEVEL = "INFO"
 if DEBUG:

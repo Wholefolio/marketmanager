@@ -8,11 +8,15 @@ from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from django.http import Http404
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 from applib.daemonclient import Client
-from api.models import Exchange, ExchangeStatus
-from api.serializers import ExchangeSerializer, ExchangeStatusSerializer
-from api.filters import ExchangeFilter, ExchangeStatusFilter
+from api.models import Exchange, ExchangeStatus, Market
+from api import serializers
+from api.filters import ExchangeFilter, ExchangeStatusFilter, MarketFilter
+
+CACHE_TTL = getattr(settings, 'CACHE_TTL', 120)
 
 
 def get_object(pk, exchange_name=None):
@@ -66,15 +70,31 @@ class ExchangeViewSet(ModelViewSet):
     """Handle exchange creation, listing and deletion."""
 
     queryset = Exchange.objects.all()
-    serializer_class = ExchangeSerializer
+    serializer_class = serializers.ExchangeSerializer
     filter_class = ExchangeFilter
+
+    @method_decorator(cache_page(CACHE_TTL))
+    def dispatch(self, *args, **kwargs):
+        return super(ExchangeViewSet, self).dispatch(*args, **kwargs)
+
+
+class MarketViewSet(ModelViewSet):
+    queryset = Market.objects.all()
+    serializer_class = serializers.MarketSerializer
+    filter_class = MarketFilter
+    filter_backends = (DjangoFilterBackend, OrderingFilter)
+    ordering_fields = ('name', 'source', 'volume', 'bid', 'ask', 'base')
+
+    @method_decorator(cache_page(CACHE_TTL))
+    def dispatch(self, *args, **kwargs):
+        return super(MarketViewSet, self).dispatch(*args, **kwargs)
 
 
 class ExchangeStatusViewSet(ModelViewSet):
     """Handle exchange creation, listing and deletion."""
 
     queryset = ExchangeStatus.objects.all()
-    serializer_class = ExchangeStatusSerializer
+    serializer_class = serializers.ExchangeStatusSerializer
     filter_class = ExchangeStatusFilter
     filter_backends = (DjangoFilterBackend, OrderingFilter)
     ordering_fields = ('name', 'volume', 'top_pair_volume', 'top_pair')

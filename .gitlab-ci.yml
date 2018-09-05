@@ -5,11 +5,13 @@ stages:
   - migrate
 
 variables:
-  REGISTRY: "registry.gitlab.com/cryptohunters/marketmanager"
-  DB_USERNAME: marketmanager
-  DB_PASSWORD: marketmanager
+  REGISTRY: "gcr.io/production-185413/marketmanager"
   DB_DATABASE: marketmanager
-  STAGING_DB_HOST: 192.168.13.187
+  STAGING_HOSTNAME: 35.225.253.18
+  GCP_CONTEXT: gke_production-185413_us-central1-a_crypto-test
+  SECRET_KEY: "testing_key"
+  PY_ENV: staging
+
 
 unittests:
   stage: test

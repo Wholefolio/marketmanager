@@ -73,12 +73,57 @@ class ExchangesTest(TestCase):
         check_response_items(request, response, self)
 
 
+class MarketsTest(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        exchange = {"name": "Bittrex", "interval": 300}
+        response = self.client.post(reverse("api:exchange-list"),
+                                    exchange,
+                                    format="json")
+        self.exc_id = response.json()["id"]
+        check_response_items(exchange, response, self)
+        self.market = {"name": "btc-eth", "exchange": self.exc_id,
+                       "volume": 55000, "last": 0.2, "ask": 0.21,
+                       "bid": 0.20, "base": "btc", "quote": "eth"}
+        self.response = self.client.post(reverse("api:market-list"),
+                                         self.market, format="json")
+        check_response_items(self.market, self.response, self)
+        self.get = self.client.get(reverse("api:market-list"))
+
+    def testGet(self):
+        self.assertEqual(self.get.json()["results"][0]["name"],
+                         self.market["name"])
+
+    def testFilterGet(self):
+        new_market = {"name": "eth-ltc", "exchange": self.exc_id,
+                      "volume": "2500", "last": "0.4", "ask": "0.41",
+                      "bid": "0.40", "base": "ltc", "quote": "eth"}
+        resp = self.client.post(reverse("api:market-list"), new_market,
+                                format="json")
+        if resp.status_code != status.HTTP_201_CREATED:
+            self.fail("Couldn't create second market!")
+        resp = self.client.get("/api/markets/?volume__lte=5000")
+        self.assertEqual(resp.json()["results"][0]["name"], new_market["name"])
+
+    def testPatch(self):
+        request = {"volume": 45000}
+        get_id = self.get.json()["results"][0]["id"]
+        resp = self.client.patch(reverse("api:market-detail", args=[get_id]),
+                                 request, format="json")
+        check_response_items(request, resp, self)
+
+    def testDelete(self):
+        get_id = self.get.json()["results"][0]["id"]
+        resp = self.client.delete(reverse("api:market-detail", args=[get_id]))
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+
+
 class ExchangeStatusTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.get = self.client.get(reverse("api:exchangestatus-list"),
-                                         format="json")
-
+                                   format="json")
 
     def testGetList(self):
         """Test getting the list of adapters."""
