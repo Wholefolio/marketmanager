@@ -39,7 +39,7 @@ release-image:
 deploy-internal:
    stage: deploy
    script:
-      - kubectl --context="crypto-testing" set image deployment/marketmanager marketmanager=$REGISTRY:${CI_PIPELINE_ID}
+      - kubectl --context=$GCP_CONTEXT set image deployment/marketmanager marketmanager=$REGISTRY:${CI_PIPELINE_ID}
 
 db:migrate-staging:
    stage: migrate

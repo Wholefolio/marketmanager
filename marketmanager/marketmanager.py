@@ -286,7 +286,7 @@ class MarketManager(object):
     def poller(self):
         self.stats.update('running', True, parent='poller')
         self.logger.info("Starting poller.")
-        while self.stats.get("running", parent="main"):
+        while True:
             statuses = ExchangeStatus.objects.filter(running=True)
             self.logger.info("Got statuses: {}".format(statuses))
             if not statuses:
@@ -310,8 +310,7 @@ class MarketManager(object):
         """
         self.stats.update("running", True, parent="main")
         self.logger.info("Starting main event loop.")
-
-        while self.stats.get("running", parent="main"):
+        while True:
             exchanges = self.getExchanges()
             self.logger.info("Got exchanges: {}".format(exchanges))
             if not exchanges:
