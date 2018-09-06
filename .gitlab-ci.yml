@@ -18,16 +18,14 @@ variables:
 
 unittests:
   stage: test
-  after_script:
-    - docker rm --force marketmanager_test
+  tags:
+   - docker
+  image: registry.gitlab.com/cryptohunters/base-images/common:latest
   script:
     - python3 manage.py test
 
 release-image:
     stage: release
-    tags:
-    - docker
-    image: registry.gitlab.com/cryptohunters/base-images/common:latest
     script:
       - docker build --build-arg SSH_PRIVATE_KEY="${SSH_PRIVATE_KEY}" -t $REGISTRY:latest .
       - docker tag $REGISTRY:latest $REGISTRY:${CI_PIPELINE_ID}
