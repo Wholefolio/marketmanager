@@ -7,6 +7,9 @@ stages:
 variables:
   REGISTRY: "gcr.io/production-185413/marketmanager"
   DB_DATABASE: marketmanager
+  DB_USERNAME: marketmanager
+  DB_PASSWORD: marketmanager
+  DB_HOSTNAME: 192.168.13.187
   STAGING_HOSTNAME: 35.225.253.18
   GCP_CONTEXT: gke_production-185413_us-central1-a_crypto-test
   SECRET_KEY: "testing_key"
@@ -18,18 +21,13 @@ unittests:
   after_script:
     - docker rm --force marketmanager_test
   script:
-    - docker run --name marketmanager_test -e POSTGRES_USER=$DB_USERNAME -e POSTGRES_PASSWORD=$DB_PASSWORD -d postgres:latest
-    - ips=$(docker inspect marketmanager_test | grep IPAddress\" | awk -F '"' '{print $4}')
-    - ip=$(echo $ips | awk '{print $1}')
-    - export DB_HOSTNAME=$ip
-    - bash scripts/wait_for_db.sh $DB_HOSTNAME
-    - pip3 install --user -U -r configs/requirements.txt
     - python3 manage.py test
 
 release-image:
     stage: release
-    before_script:
-      - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
+    tags:
+    - docker
+    image: registry.gitlab.com/cryptohunters/base-images/common:latest
     script:
       - docker build --build-arg SSH_PRIVATE_KEY="${SSH_PRIVATE_KEY}" -t $REGISTRY:latest .
       - docker tag $REGISTRY:latest $REGISTRY:${CI_PIPELINE_ID}
@@ -46,7 +44,8 @@ db:migrate-staging:
    before_script: []
    variables:
      DB_HOSTNAME: "$STAGING_DB_HOST"
-     PY_ENV: "staging"
+     DB_USERNAME: "$GCP_DB_USERNAME"
+     DB_PASSWORD: "$GCP_DB_PASSWORD"
    when: manual
    script:
       - python3 manage.py migrate
