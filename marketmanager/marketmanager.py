@@ -68,7 +68,7 @@ class MarketManager(object):
             msg = "Exchange run failed with: {}".format(response["error"])
             self.logger.error(msg)
             # No response
-            return False
+            return msg
         # Request is successful
         msg = "Coiner accepted run request for exchange {}.".format(name)
         self.logger.info(msg)
@@ -111,7 +111,8 @@ class MarketManager(object):
         response = appRequest("get", url)
         if not response:
             return self.coinerNoResult(response, status)
-
+        if "error" in response:
+            return response
         current_status = response[0].get("status")
         if current_status != "FAILURE" and current_status != "SUCCESS":
             # Exchange is still in pending or running
