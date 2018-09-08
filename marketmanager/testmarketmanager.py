@@ -199,7 +199,7 @@ class TestMarketManager(unittest.TestCase):
     def testcoinerRunExchange_BadResponse(self, mock_item):
         mock_item.return_value = {"error": "400 Bad request"}
         resp = self.manager.coinerRunExchange(self.exchange, self.status)
-        self.assertFalse(resp)
+        self.assertTrue(isinstance(resp, str))
 
     @patch("marketmanager.marketmanager.appRequest")
     def testCheckResult_NoTimeStarted(self, mock_item):
