@@ -46,6 +46,7 @@ class Market(models.Model):
 
     class Meta:
         db_table = "markets"
+        unique_together = (('name', 'exchange'))
 
 
 class ExchangeStatus(models.Model):
