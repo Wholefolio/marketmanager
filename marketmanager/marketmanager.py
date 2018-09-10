@@ -123,7 +123,7 @@ class MarketManager(object):
             msg = "Exchange run for {} failed!".format(status.exchange)
             self.logger.critical(msg)
         elif current_status == "SUCCESS":
-            success = False
+            success = True
             msg = "Exchange run for {} successfull".format(status.exchange)
             self.logger.info(msg)
         else:
