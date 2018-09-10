@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.conf import settings
 from time import sleep
 from concurrent.futures import ThreadPoolExecutor
-from socket import (socket, AF_UNIX, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR)
+from socket import (socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR)
 from socket import timeout as SOCKET_TIMEOUT
 
 from applib.tools import appRequest
@@ -35,7 +35,7 @@ class MarketManager(object):
 
     def __init__(self, **config):
         """Set up our initial parameters."""
-        self.socket_file = config["sock_file"]
+        self.socket_port = config["socket_port"]
         self.lock_file = config["lock_file"]
         self.worker_limit = int(config["threads"])
         self.logger = logging.getLogger(__name__)
@@ -241,12 +241,12 @@ class MarketManager(object):
         4) Put the response in the outbound queue and loop again
         """
         with ThreadPoolExecutor(max_workers=self.worker_limit) as executor:
-            with socket(AF_UNIX, SOCK_STREAM) as sock:
+            with socket(AF_INET, SOCK_STREAM) as sock:
                 sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-                sock.bind(self.socket_file)
+                sock.bind(("0.0.0.0", self.socket_port))
                 sock.listen(10)
-                self.logger.info("Server listening on local UNIX socket %s",
-                                 self.socket_file)
+                self.logger.info("Server listening on local TCP socket %s",
+                                 self.socket_port)
                 while True:
                     conn, addr = sock.accept()
                     executor.submit(self.handler, conn, addr)

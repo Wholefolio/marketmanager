@@ -5,7 +5,7 @@ import os
 import time
 import pickle
 import multiprocessing as mp
-from socket import socket, AF_UNIX, SOCK_STREAM
+from socket import socket, AF_INET, SOCK_STREAM
 from django.db.models.query import QuerySet
 from django.utils import timezone
 from django.conf import settings
@@ -121,8 +121,8 @@ class TestMarketManager(unittest.TestCase):
         p = mp.Process(target=self.manager.incoming)
         p.start()
         time.sleep(0.1)
-        s = socket(AF_UNIX, SOCK_STREAM)
-        s.connect((config['sock_file']))
+        s = socket(AF_INET, SOCK_STREAM)
+        s.connect(("localhost", config['socket_port']))
         data = pickle.dumps({'id': 1, 'type': 'status'})
         s.sendall(data)
         data = s.recv(1024)
