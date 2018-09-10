@@ -56,6 +56,9 @@ MARKET_MANAGER_DAEMON = {
                  "threads": 2,
                  "lock_file": "/tmp/.lock.marketmanager",
                  "sock_file": "/tmp/.sock.marketmanager",
+                 "processes": {
+                    "incoming": None, "scheduler": None, "poller": None
+                 },
                  "logging": {
                      "version": 1,
                      "disable_existing_loggers": False,
