@@ -10,9 +10,7 @@ from time import sleep
 from concurrent.futures import ThreadPoolExecutor
 from socket import (socket, AF_UNIX, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR)
 from socket import timeout as SOCKET_TIMEOUT
-from multiprocessing.managers import BaseManager
 
-from daemonlib.stats import get_stats_object
 from applib.tools import appRequest
 
 # Set the django settings env variable and load django
@@ -40,21 +38,8 @@ class MarketManager(object):
         self.socket_file = config["sock_file"]
         self.lock_file = config["lock_file"]
         self.worker_limit = int(config["threads"])
-        self.__initialStats()
         self.logger = logging.getLogger(__name__)
         logging.config.dictConfig(config["logging"])
-
-    def __initialStats(self):
-        """Set up the initial stats for the object."""
-        manager = BaseManager()
-        stats = get_stats_object()
-        manager.register("stats", stats)
-        manager.start()
-        with open(self.lock_file, "a+") as f:
-            f.write("{}\n".format(manager._process.pid))
-        self.stats = manager.stats()
-        self.stats.add("UNIX socket", self.socket_file)
-        self.stats.add("worker-limit", self.worker_limit)
 
     def coinerRunExchange(self, exchange, status):
         """Send a request to coiner"""
@@ -114,6 +99,7 @@ class MarketManager(object):
         if "error" in response:
             return response
         current_status = response[0].get("status")
+        success = False
         if current_status != "FAILURE" and current_status != "SUCCESS":
             # Exchange is still in pending or running
             msg = "Exchange {} is in state: {}".format(status.exchange,
@@ -137,13 +123,16 @@ class MarketManager(object):
             msg = "Exchange run for {} failed!".format(status.exchange)
             self.logger.critical(msg)
         elif current_status == "SUCCESS":
+            success = False
             msg = "Exchange run for {} successfull".format(status.exchange)
             self.logger.info(msg)
         else:
             msg = "Missing exchange status for {}".format(status.exchange)
             self.logger.critical(msg)
         status.last_run_status = response[0]["result"]
-        status.last_run = timezone.now()
+        if success:
+            # Only update the last run if it's sucessful
+            status.last_run = timezone.now()
         status.running = False
         status.save()
         return True
@@ -181,7 +170,7 @@ class MarketManager(object):
         """Get the status of the coiner manager process and db."""
         response = {"id": request_id,
                     "type": "status-response",
-                    "data": self.stats.getAll()}
+                    "status": "running"}
         return response
 
     def handleRunRequest(self, exchange_id):
@@ -205,7 +194,6 @@ class MarketManager(object):
         """Handle an incoming request."""
         pid = os.getpid()
         BUFFER = 1024
-        self.stats.increase("active-threads", parent="incoming")
         self.logger.info("Handling connection [%s].", pid)
         received = bytes()
         while True:
@@ -225,7 +213,6 @@ class MarketManager(object):
         loaded_data = pickle.loads(data)
         self.logger.debug("Data loaded: %s", loaded_data)
         if not isinstance(loaded_data, dict):
-            self.stats.increase("bad-requests")
             response = pickle.dumps("Bad request - expected dictionary.")
             connection.send(response)
             self.logger.debug("Bad request - expected dictionary")
@@ -236,14 +223,11 @@ class MarketManager(object):
         elif loaded_data["type"] == "configure":
             response = self.handleConfigEvent(loaded_data["data"])
             self.logger.debug("Response to configure request: %s", response)
-            self.stats.increase("completed-requests")
         elif loaded_data["type"] == "exchange_run":
             response = self.handleRunRequest(loaded_data["exchange_id"])
             self.logger.debug("exchange run finished! Response: {}".format(
                                                                response))
         connection.send(pickle.dumps(response))
-        self.stats.increase("connections-received")
-        self.stats.decrease("active-threads", parent="incoming")
         connection.close()
 
     def incoming(self):
@@ -256,7 +240,6 @@ class MarketManager(object):
         3) Pass it to the appropriate method for execution
         4) Put the response in the outbound queue and loop again
         """
-        self.stats.update("running", True, parent="incoming")
         with ThreadPoolExecutor(max_workers=self.worker_limit) as executor:
             with socket(AF_UNIX, SOCK_STREAM) as sock:
                 sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
@@ -285,23 +268,26 @@ class MarketManager(object):
         return queryset[0]
 
     def poller(self):
-        self.stats.update('running', True, parent='poller')
         self.logger.info("Starting poller.")
         while True:
-            statuses = ExchangeStatus.objects.filter(running=True)
-            self.logger.info("Got statuses: {}".format(statuses))
-            if not statuses:
-                sleep(5)
-                continue
-            for status in statuses:
-                if not status.last_run_id:
+            try:
+                statuses = ExchangeStatus.objects.filter(running=True)
+                self.logger.info("Got statuses: {}".format(statuses))
+                if not statuses:
+                    sleep(5)
                     continue
-                self.coinerCheckResult(status)
-            msg = "Finished running through all exchanges."
-            self.logger.info(msg)
-            sleep(10)
+                for status in statuses:
+                    if not status.last_run_id:
+                        continue
+                    self.coinerCheckResult(status)
+                msg = "Finished running through all exchanges."
+                self.logger.info(msg)
+                sleep(10)
+            except django.db.utils.OperationalError as e:
+                msg = "Database operation failed: {}".format(e)
+                self.logger.critical(msg)
 
-    def main(self):
+    def scheduler(self):
         """Event loop which can be called as a separate Process.
 
         Workflow:
@@ -309,7 +295,6 @@ class MarketManager(object):
         2) Run checks if the exchange should be run(enabled, time)
         3) Send the request to fetch the exchange data to coiner
         """
-        self.stats.update("running", True, parent="main")
         self.logger.info("Starting main event loop.")
         while True:
             exchanges = self.getExchanges()
@@ -324,9 +309,7 @@ class MarketManager(object):
                     continue
                 result = self.coinerRunExchange(exchange, status)
                 if not result:
-                    self.stats.increase("failed-executions")
                     continue
-                self.stats.increase("exchange-executions")
             msg = "Finished running through all exchanges."
             self.logger.info(msg)
             sleep(10)

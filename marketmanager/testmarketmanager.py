@@ -150,9 +150,9 @@ class TestMarketManager(unittest.TestCase):
         self.manager.coinerNoResult([], self.status)
         self.assertIsNotNone(self.status.last_run_status)
 
-    def testMain_WithoutExchanges(self):
-        """Test the main process with no adapters."""
-        p = mp.Process(target=self.manager.main)
+    def testScheduler_WithoutExchanges(self):
+        """Test the scheduler process with no adapters."""
+        p = mp.Process(target=self.manager.scheduler)
         p.start()
         time.sleep(3)
         # The process should be alive
@@ -175,12 +175,12 @@ class TestMarketManager(unittest.TestCase):
         self.assertFalse(result)
 
     @patch("marketmanager.marketmanager.appRequest")
-    def testMain_WithExchange(self, mock_item):
-        """Test the main process with no adapters."""
+    def testScheduler_WithExchange(self, mock_item):
+        """Test the scheduler process with no adapters."""
         mock_item.return_value = get_json()
         exchange = Exchange(name="Test", interval=30)
         exchange.save()
-        p = mp.Process(target=self.manager.main)
+        p = mp.Process(target=self.manager.scheduler)
         p.start()
         time.sleep(0.5)
         # The process should be alive
