@@ -22,7 +22,7 @@ class Command(BaseCommand):
         config = settings.MARKET_MANAGER_DAEMON
         command = options['operation']
         if command == 'start':
-                start(app_name, MarketManager, config)
+            start(app_name, MarketManager, config)
         elif command == 'stop':
             stop(config)
         elif command == 'restart':

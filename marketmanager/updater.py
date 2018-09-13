@@ -26,8 +26,11 @@ class ExchangeUpdater:
         for market in current_data:
             # Check if the name is in the market data - if yes update it
             if market.name in self.market_data:
+                msg = "Found match in market_data. {}".format(
+                                                self.market_data[market.name])
+                self.logger.debug(msg)
                 for key, value in self.market_data[market.name].items():
-                    if key != "exchange":
+                    if key != "exchange_id":
                         # Skip the exchange key as it must remain the same
                         setattr(market, key, value)
                 market.save()
