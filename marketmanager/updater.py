@@ -14,6 +14,8 @@ class ExchangeUpdater:
 
     @atomic
     def createMarkets(self):
+        msg = "Starting creation of markets"
+        self.logger.info(msg)
         for name, data in self.market_data.items():
             market = Market(name=name, **data)
             market.save()
@@ -24,9 +26,10 @@ class ExchangeUpdater:
         for market in current_data:
             # Check if the name is in the market data - if yes update it
             if market.name in self.market_data:
-                print(self.market_data[market.name])
                 for key, value in self.market_data[market.name].items():
-                    setattr(market, key, value)
+                    if key != "exchange":
+                        # Skip the exchange key as it must remain the same
+                        setattr(market, key, value)
                 market.save()
                 # Delete the item form the list
                 del self.market_data[market.name]

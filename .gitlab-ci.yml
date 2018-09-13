@@ -43,6 +43,7 @@ deploy-internal:
 db:migrate-staging:
    stage: migrate
    before_script: []
+   image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
    variables:
      DB_HOSTNAME: "$STAGING_DB_HOST"
      DB_USERNAME: "$GCP_DB_USERNAME"

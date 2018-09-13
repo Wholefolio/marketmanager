@@ -2,10 +2,11 @@ import ccxt
 from celery import shared_task
 
 from marketmanager.updater import ExchangeUpdater
+from marketmanager.celery import app
 from api.models import Exchange
 
 
-@shared_task
+@app.task
 def fetch_exchange_data(exchange_id):
     """Task to fetch and update exchange data via ccxt."""
     exchange = Exchange.objects.get(id=exchange_id)
