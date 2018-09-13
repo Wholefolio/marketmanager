@@ -12,3 +12,6 @@ ALLOWED_HOSTS = ["marketmanager", "marketmanager-api", "marketmanager-daemon",
 STORAGE_EXCHANGE_URL = environ.get("STORAGE_EXCHANGE_URL", False)
 
 DATABASES = get_db_details_postgres()
+
+# RabbitMQ
+BROKER_URL = environ.get("BROKER_URL")
