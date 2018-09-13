@@ -20,6 +20,8 @@ unittests:
   stage: test
   tags:
    - docker
+  variables:
+    PY_ENV: dev
   image: registry.gitlab.com/cryptohunters/base-images/common:latest
   script:
     - python3 manage.py test
