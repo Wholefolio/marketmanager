@@ -1,6 +1,6 @@
 import logging
 from django.utils import timezone
-from django.db.transaction import atomic
+from django.db import transaction
 
 from api.models import Exchange, Market
 
@@ -12,7 +12,6 @@ class ExchangeUpdater:
         self.market_data = data
         self.logger = logging.getLogger(__name__)
 
-    @atomic
     def createMarkets(self):
         msg = "Starting creation of markets"
         self.logger.info(msg)
@@ -20,7 +19,6 @@ class ExchangeUpdater:
             market = Market(name=name, **data)
             market.save()
 
-    @atomic
     def updateExistingMarkets(self, current_data):
         """Update existing exchange data."""
         for market in current_data:
@@ -39,6 +37,7 @@ class ExchangeUpdater:
         # We have gone through the existing ones now we have to create the new
         self.createMarkets()
 
+    @transaction.atomic
     def run(self):
         """Main run method - create/update the market data passed in."""
         exchange = Exchange.objects.get(id=self.exchange_id)
@@ -46,7 +45,7 @@ class ExchangeUpdater:
         self.logger.info("Starting update for {}!".format(exchange.name))
         # Fetch the old data by filtering on source id
         self.logger.info("Fetching old data...")
-        current_data = Market.objects.all()
+        current_data = Market.objects.select_for_update().all()
         if not current_data:
             self.createMarkets()
         else:
