@@ -55,7 +55,7 @@ MARKET_MANAGER_DAEMON = {
                  "threads": 2,
                  "lock_file": "/tmp/.lock.marketmanager",
                  "sock_file": "/tmp/.sock.marketmanager",
-                 "daemon": False,
+                 "daemon": True,
                  "socket_port": 5000,
                  "processes": {
                     "incoming": None, "scheduler": None, "poller": None

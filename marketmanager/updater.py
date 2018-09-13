@@ -54,7 +54,7 @@ class ExchangeUpdater:
         time_delta = timezone.now().timestamp() - current_time
         self.logger.info("Update finished in: {} seconds".format(time_delta))
         self.updateExchange(exchange)
-        return "Market and exchange update successful"
+        return "Data update successful for exchange: {}".format(exchange)
 
     def updateExchange(self, exchange):
         """Patch the marketmanager exchange last updated timestamp."""
