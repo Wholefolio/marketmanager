@@ -25,8 +25,11 @@ def fetch_exchange_data(exchange_id):
         data = ccxt_exchange.fetchTickers()
     update_data = {}
     for values in data.values():
-        quote, base = values['symbol'].split("/")
-        name = values['symbol'].replace('/', '-')
+        if values['symbol']:
+            quote, base = values['symbol'].split("/")
+        else:
+            quote, base = values['info']['symbol'].split("_")
+        name = "{}-{}".format(quote, base)
         # Set them to 0 as there might be nulls
         last = bid = ask = quoteVolume = 0
         for item in ["last", "bid", "ask", "quoteVolume"]:

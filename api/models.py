@@ -37,7 +37,7 @@ class Market(models.Model):
     """A market is a place to trade 2 coins within each exchange."""
     name = models.CharField(max_length=24)
     base = models.CharField(max_length=10)
-    quote = models.CharField(max_length=10)
+    quote = models.CharField(max_length=25)
     exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE)
     volume = models.FloatField(null=True)
     last = models.FloatField()
