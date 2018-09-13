@@ -1,5 +1,4 @@
 import ccxt
-from celery import shared_task
 
 from marketmanager.updater import ExchangeUpdater
 from marketmanager.celery import app
@@ -28,12 +27,17 @@ def fetch_exchange_data(exchange_id):
     for values in data.values():
         quote, base = values['symbol'].split("/")
         name = values['symbol'].replace('/', '-')
+        # Set them to 0 as there might be nulls
+        last = bid = ask = quoteVolume = 0
+        for item in ["last", "bid", "ask", "quoteVolume"]:
+            if values[item]:
+                vars()[item] = values[item]
         update_data[name] = {"base": base,
                              "quote": quote,
-                             "last": values["last"],
-                             "bid": values["bid"],
-                             "ask": values["ask"],
-                             "volume": values["quoteVolume"],
+                             "last": last,
+                             "bid": bid,
+                             "ask": ask,
+                             "volume": quoteVolume,
                              "exchange_id": exchange_id
                              }
     updater = ExchangeUpdater(exchange_id, update_data)

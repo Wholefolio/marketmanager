@@ -27,12 +27,13 @@ class Command(BaseCommand):
                 exchange.enabled = options["enable"]
                 exchange.save()
             return self.style.SUCCESS("All existing exchanges modified!")
-        try:
-            exchange = Exchange.objects.get(id=options["exchange_id"])
-        except Exchange.DoesNotExist:
-            msg = "Exchange not found"
-            return self.stdout.write(self.style.ERROR(msg))
-        exchange.enabled = options["enable"]
-        exchange.save()
-        msg = "Exchange state changed successfully - {}".format(exchange.id)
-        self.stdout.write(self.style.SUCCESS(msg))
+        for i in options["exchange_id"]:
+            try:
+                exchange = Exchange.objects.get(id=i)
+                exchange.enabled = options["enable"]
+                exchange.save()
+                msg = "Exchange changed successfully: {}".format(exchange.id)
+                self.stdout.write(self.style.SUCCESS(msg))
+            except Exchange.DoesNotExist:
+                msg = "Exchange not found"
+                return self.stdout.write(self.style.ERROR(msg))

@@ -39,6 +39,7 @@ deploy-internal:
    script:
       - kubectl --context=$GCP_CONTEXT set image deployment/marketmanager-daemon marketmanager-daemon=$REGISTRY:${CI_PIPELINE_ID}
       - kubectl --context=$GCP_CONTEXT set image deployment/marketmanager-api marketmanager-api=$REGISTRY:${CI_PIPELINE_ID}
+      - kubectl --context=$GCP_CONTEXT set image deployment/marketmanager-celery marketmanager-celery=$REGISTRY:${CI_PIPELINE_ID}
 
 db:migrate-staging:
    stage: migrate
