@@ -6,11 +6,11 @@ class Command(BaseCommand):
     help = "Add an exchange for scheduling(must be available in CCXT)."
 
     def add_arguments(self, parser):
-        all_help = "This will add all available ccxt exchanges and create\
-                    sources for them in the storage APP."
+        all_help = "This will add all available ccxt exchanges."
         group = parser.add_mutually_exclusive_group(required=True)
-        group.add_argument("--exchange_id", action="store", dest="exchange_id",
-                           help="source code file")
+        group.add_argument("--exchange_id", action="append", dest="exchange_id",
+                           help="List of existing exchange ids")
+
         group.add_argument("--all", action="store_true", dest="all",
                            help=all_help)
         act_group = parser.add_mutually_exclusive_group(required=True)

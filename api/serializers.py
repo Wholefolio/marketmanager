@@ -1,6 +1,8 @@
 """Serializers module."""
 from rest_framework import serializers
-from .models import Exchange, ExchangeStatus, Market
+from django_celery_results.models import TaskResult
+
+from api import models
 
 
 class ExchangeSerializer(serializers.ModelSerializer):
@@ -9,7 +11,7 @@ class ExchangeSerializer(serializers.ModelSerializer):
     class Meta:
         """Meta class to map serializer's fields with the model fields."""
 
-        model = Exchange
+        model = models.Exchange
         fields = ('id', 'name', 'created', 'updated', "url", "api_url",
                   "volume", "top_pair", "top_pair_volume", "interval",
                   "enabled", "last_updated")
@@ -22,7 +24,7 @@ class ExchangeSerializer(serializers.ModelSerializer):
 class MarketSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Market
+        model = models.Market
         fields = ("id", "name", "exchange", "volume", "last", "bid", "ask",
                   "base", "quote")
 
@@ -33,6 +35,13 @@ class ExchangeStatusSerializer(serializers.ModelSerializer):
     class Meta:
         """Meta class to map serializer's fields with the model fields."""
 
-        model = ExchangeStatus
+        model = models.ExchangeStatus
         fields = ('id', 'exchange', 'last_run', 'last_run_id',
                   'last_run_status', 'time_started', 'running')
+
+
+class TaskResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaskResult
+        fields = ("id", "date_done", "meta", "status", "result",
+                  "traceback", "task_id")

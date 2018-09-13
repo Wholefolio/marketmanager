@@ -1,0 +1,39 @@
+import ccxt
+from celery import shared_task
+
+from marketmanager.updater import ExchangeUpdater
+from api.models import Exchange
+
+
+@shared_task
+def fetch_exchange_data(exchange_id):
+    """Task to fetch and update exchange data via ccxt."""
+    exchange = Exchange.objects.get(id=exchange_id)
+    if exchange.name.lower() not in ccxt.exchanges:
+        return "Exchange doesn't exist"
+    # Init the exchange from the ccxt module
+    ccxt_exchange = getattr(ccxt, exchange.name.lower())()
+    if not ccxt_exchange.has.get('fetchTickers'):
+        # Exchange doesn't support fetching all tickers
+        if ccxt_exchange.symbols:
+            data = {}
+            for symbol in ccxt_exchange.symbols:
+                data[symbol] = ccxt_exchange.fetchTicker(symbol)
+        else:
+            return "No symbols listed in exchange {}".format(exchange.name)
+    else:
+        data = ccxt_exchange.fetchTickers()
+    update_data = {}
+    for values in data.values():
+        quote, base = values['symbol'].split("/")
+        name = values['symbol'].replace('/', '-')
+        update_data[name] = {"base": base,
+                             "quote": quote,
+                             "last": values["last"],
+                             "bid": values["bid"],
+                             "ask": values["ask"],
+                             "volume": values["quoteVolume"],
+                             "exchange_id": exchange_id
+                             }
+    updater = ExchangeUpdater(exchange_id, update_data)
+    return updater.run()

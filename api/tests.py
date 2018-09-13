@@ -1,6 +1,4 @@
-"""Tests for the coiner API."""
-import json
-import os
+"""Tests for the marketmanager API."""
 from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status

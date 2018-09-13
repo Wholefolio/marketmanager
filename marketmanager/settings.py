@@ -15,13 +15,17 @@ else:
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+# Celery config
+CELERYD_CONCURRENCY = 4
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_TRACK_STARTED = True
+BROKER_CONNECTION_TIMEOUT = 3
 # Get the configuration
-ALLOWED_HOSTS = DATABASES = SECRET_KEY = COINER_URL = DEBUG\
-              = STORAGE_EXCHANGE_URL = None
+ALLOWED_HOSTS = DATABASES = SECRET_KEY = DEBUG\
+              = STORAGE_EXCHANGE_URL = BROKER_URL = None
 
 for setting in ['ALLOWED_HOSTS', 'DATABASES', 'SECRET_KEY', "DEBUG",
-                'COINER_URL', "STORAGE_EXCHANGE_URL"]:
+                "STORAGE_EXCHANGE_URL", "BROKER_URL"]:
     try:
         globals()[setting] = getattr(config, setting)
     except AttributeError:
@@ -43,13 +47,6 @@ LOG_LEVEL = "INFO"
 if DEBUG:
     LOG_LEVEL = "DEBUG"
 
-COINER_URLS = {
-    "adapter": "{}run_adapter/".format(COINER_URL),
-    "exchange": "{}fetch_exchange_data/".format(COINER_URL),
-    "available-exchanges": "{}available_exchanges/".format(COINER_URL),
-    "exchange-details": "{}exchange_details/".format(COINER_URL),
-    "results": "{}get_results/".format(COINER_URL)
-    }
 
 # Daemon config
 MARKET_MANAGER_DAEMON = {
@@ -105,6 +102,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'django_celery_results',
     'django_filters',
     'api',
 ]

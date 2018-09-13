@@ -3,6 +3,7 @@ from django.db.utils import IntegrityError
 from django.conf import settings
 import requests
 import os
+import ccxt
 
 from api.models import Exchange, ExchangeStatus
 
@@ -27,9 +28,7 @@ class Command(BaseCommand):
                             help="Exchange ID on remote host.", required=False)
 
     def create_all(self, interval):
-        url = settings.COINER_URLS.get("available-exchanges")
-        exchanges = requests.get(url).json().get("exchanges")
-        for exc in exchanges:
+        for exc in ccxt.exchanges:
             self.create(exc, interval)
 
     def create(self, name, interval):
@@ -61,9 +60,23 @@ class Command(BaseCommand):
 
     def get_exchange_details(self, name):
         """Create the data dict with the exchange name, api url and www url."""
-        url = "{}?name={}".format(settings.COINER_URLS.get("exchange-details"),
-                                  name)
-        return requests.get(url).json()
+        try:
+            exchange_object = getattr(ccxt, name.lower())()
+        except AttributeError:
+            msg = {"error": "Not existing exchange"}
+            return msg
+        if isinstance(exchange_object.urls['api'], dict):
+            if "public" in exchange_object.urls['api']:
+                api_url = exchange_object.urls['api']['public']
+            elif "rest" in exchange_object.urls['api']:
+                api_url = exchange_object.urls['api']['rest']
+            elif "current" in exchange_object.urls['api']:
+                api_url = exchange_object.urls['api']['current']
+        else:
+            api_url = exchange_object.urls['api']
+        url = exchange_object.urls['www']
+        logo = exchange_object.urls['logo']
+        return {"api_url": api_url, "url": url, "logo": logo}
 
     def handle(self, *args, **options):
         self.marketmanager_host = None

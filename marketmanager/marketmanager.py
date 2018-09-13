@@ -5,13 +5,13 @@ import pickle
 import logging.config
 import django
 from django.utils import timezone
-from django.conf import settings
 from time import sleep
 from concurrent.futures import ThreadPoolExecutor
 from socket import (socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR)
 from socket import timeout as SOCKET_TIMEOUT
+from django_celery_results.models import TaskResult
 
-from applib.tools import appRequest
+from api.tasks import fetch_exchange_data
 
 # Set the django settings env variable and load django
 if "DJANGO_SETTINGS_MODULE" not in os.environ:
@@ -23,13 +23,12 @@ else:
 
 
 class MarketManager(object):
-    """Coiner class.
+    """MarketManager main class.
 
     Methods:
-    init - start up by passing two queues(in/out),
-           database params(host/port/user/pass)
+    init - start up by passing the daemon config(found in settings.py)
     incoming - incoming request loop. See incoming method for details.
-    main - marketmanager main event loop. See main method for details.
+    scheduler - marketmanager scheduling event loop.
     poller - marketmanager polling loop. See poller for details.
     """
 
@@ -41,101 +40,53 @@ class MarketManager(object):
         self.logger = logging.getLogger(__name__)
         logging.config.dictConfig(config["logging"])
 
-    def coinerRunExchange(self, exchange, status):
-        """Send a request to coiner"""
-        msg = "Sending request to coiner for {}".format(exchange.name)
-        self.logger.info(msg)
-        name = exchange.name
-        data = {"name": name, "exchange_id": exchange.id}
-        response = appRequest("post", settings.COINER_URLS["exchange"], data)
-        # Check the response
-        if "error" in response:
-            msg = "Exchange run failed with: {}".format(response["error"])
-            self.logger.error(msg)
-            # No response
-            return msg
-        # Request is successful
-        msg = "Coiner accepted run request for exchange {}.".format(name)
-        self.logger.info(msg)
-        status.running = True
-        status.last_run_id = response["id"]
-        status.time_started = timezone.now()
-        status.save()
-        return True
-
-    def coinerNoResult(self, result, status):
-        """Work through the empty result from coiner.
-
-        If false - then there was a timeout/connection error.
-        If an empty list - coiner couldn't find the celery task ID.
-        """
-        if isinstance(result, list):
-            msg = "Exchange run failed - no task ID in coiner!"
-            self.logger.critical(msg)
-            # Set the status and running to false
-            status.last_run_status = msg
-            # Check since how long is the start time
-            if not status.time_started:
-                # There is no start time, so the exchange was not run
-                return
-            time_now = timezone.now().timestamp()
-            start_time = status.time_started.timestamp()
-            if start_time + 10 < time_now:
-                status.running = False
-        else:
-            msg = "Failed to fetch exchange results from coiner!"
-            self.logger.critical(msg)
-            status.last_run_status = msg
-        status.save()
-
-    def coinerCheckResult(self, status):
+    def checkTaskResult(self, status):
         """Check the status of an running exchange in coiner."""
         self.logger.info("Running poller check on {}".format(status.exchange))
-        url = "{}?task_id={}".format(settings.COINER_URLS['results'],
-                                     status.last_run_id)
-        response = appRequest("get", url)
-        if not response:
-            return self.coinerNoResult(response, status)
-        if "error" in response:
-            return response
-        current_status = response[0].get("status")
+        run_id = status.last_run_id
+        try:
+            task = TaskResult.objects.get(task_id=run_id)
+        except TaskResult.DoesNotExist:
+            msg = {"error": "Task result doesn't exist!"}
+            self.logger.critical(msg)
+            status.running = False
+            status.save()
+            return msg
         success = False
-        if current_status != "FAILURE" and current_status != "SUCCESS":
+        if task.status != "FAILURE" and task.status != "SUCCESS":
             # Exchange is still in pending or running
             msg = "Exchange {} is in state: {}".format(status.exchange,
-                                                       current_status)
+                                                       task.status)
             self.logger.info(msg)
-            # Check if the exchange is running for more than 10 minutes
-            if not status.time_started:
-                status.running = False
-                status.save()
-                return
+            # Check if the exchange is running for more than 1 minute
             time_now = timezone.now().timestamp()
             start_time = status.time_started.timestamp()
-            if start_time + 120 < time_now:
+            if start_time + 60 < time_now:
                 status.running = False
                 status.last_run_status = "STUCK"
+                msg = {'error': None}
+                msg["error"] = "Exchange has been running more than 60 seconds"
+                msg["error"] += ".Moving to not running."
+                self.logger.error(msg)
+                msg = {'error': msg}
             else:
                 status.last_run_status = msg
             status.save()
-            return
-        elif current_status == "FAILURE":
+            return msg
+        elif task.status == "FAILURE":
             msg = "Exchange run for {} failed!".format(status.exchange)
             self.logger.critical(msg)
-        elif current_status == "SUCCESS":
+        elif task.status == "SUCCESS":
             success = True
             msg = "Exchange run for {} successfull".format(status.exchange)
             self.logger.info(msg)
-        else:
-            msg = "Missing exchange status for {}".format(status.exchange)
-            self.logger.critical(msg)
-        status.last_run_status = response[0]["result"]
+        status.last_run_status = task.result
         if success:
             # Only update the last run if it's sucessful
             status.last_run = timezone.now()
         status.running = False
         status.save()
-        return True
+        return msg
 
     def checkExchange(self, exchange, status):
         """Check if the exchange data is meant to be fetched."""
@@ -167,7 +118,7 @@ class MarketManager(object):
         pass
 
     def handleStatusEvent(self, request_id):
-        """Get the status of the coiner manager process and db."""
+        """Get the status of the market manager process and db."""
         response = {"id": request_id,
                     "type": "status-response",
                     "status": "running"}
@@ -175,20 +126,24 @@ class MarketManager(object):
 
     def handleRunRequest(self, exchange_id):
         """Immediately run the fetch on the exchange data."""
-        self.logger.debug("Handling single run for exchange.")
+        self.logger.debug("Handling manual run for exchange.")
         exchange = self.getExchanges(exchange_id)
         if not exchange:
-            msg = "Couldn't find exchange."
+            msg = {"error": "Couldn't find exchange."}
             self.logger.debug(msg)
             return msg
         status = self.getExchangeStatus(exchange_id)
-        result = self.coinerRunExchange(exchange[0], status)
-        if result:
-            msg = "Coiner has accepted exchange manual run!"
+        task_id = fetch_exchange_data.delay(exchange.id)
+        if task_id:
+            status.last_run_id = task_id
+            status.running = True
+            status.save()
+            msg = "Manual exchange run accepted. Task ID: !".format(task_id)
             self.logger.info(msg)
             return msg
-        self.logger.info("Coiner couldn't handle manual run request")
-        return False
+        msg = {"error": "No celery task id for manual run. Please retry"}
+        self.logger.info(msg)
+        return msg
 
     def handler(self, connection, addr):
         """Handle an incoming request."""
@@ -268,24 +223,24 @@ class MarketManager(object):
         return queryset[0]
 
     def poller(self):
+        """Poller - checks the status of each RUNNING exchange."""
         self.logger.info("Starting poller.")
         while True:
-            try:
-                statuses = ExchangeStatus.objects.filter(running=True)
-                self.logger.info("Got statuses: {}".format(statuses))
-                if not statuses:
-                    sleep(5)
+            statuses = ExchangeStatus.objects.filter(running=True)
+            self.logger.info("Got statuses: {}".format(statuses))
+            if not statuses:
+                sleep(5)
+                continue
+            for status in statuses:
+                if not status.last_run_id:
+                    msg = "Missing last run id for exchange [{}]".format(
+                                                              status.exchange)
+                    self.logger.info(msg)
                     continue
-                for status in statuses:
-                    if not status.last_run_id:
-                        continue
-                    self.coinerCheckResult(status)
-                msg = "Finished running through all exchanges."
-                self.logger.info(msg)
-                sleep(10)
-            except django.db.utils.OperationalError as e:
-                msg = "Database operation failed: {}".format(e)
-                self.logger.critical(msg)
+                self.checkTaskResult(status)
+            msg = "Finished running through all exchanges."
+            self.logger.info(msg)
+            sleep(10)
 
     def scheduler(self):
         """Event loop which can be called as a separate Process.
@@ -307,9 +262,12 @@ class MarketManager(object):
                 should_run = self.checkExchange(exchange, status)
                 if not should_run:
                     continue
-                result = self.coinerRunExchange(exchange, status)
-                if not result:
-                    continue
+                task_id = fetch_exchange_data.delay(exchange.id)
+                if task_id:
+                    status.time_started = timezone.now()
+                    status.last_run_id = task_id
+                    status.running = True
+                    status.save()
             msg = "Finished running through all exchanges."
             self.logger.info(msg)
             sleep(10)
