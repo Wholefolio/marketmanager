@@ -124,27 +124,6 @@ class MarketManager(object):
                     "status": "running"}
         return response
 
-    def handleRunRequest(self, exchange_id):
-        """Immediately run the fetch on the exchange data."""
-        self.logger.debug("Handling manual run for exchange.")
-        exchange = self.getExchanges(exchange_id)
-        if not exchange:
-            msg = {"error": "Couldn't find exchange."}
-            self.logger.debug(msg)
-            return msg
-        status = self.getExchangeStatus(exchange_id)
-        task_id = fetch_exchange_data.delay(exchange.id)
-        if task_id:
-            status.last_run_id = task_id
-            status.running = True
-            status.save()
-            msg = "Manual exchange run accepted. Task ID: !".format(task_id)
-            self.logger.info(msg)
-            return msg
-        msg = {"error": "No celery task id for manual run. Please retry"}
-        self.logger.info(msg)
-        return msg
-
     def handler(self, connection, addr):
         """Handle an incoming request."""
         pid = os.getpid()
@@ -178,10 +157,6 @@ class MarketManager(object):
         elif loaded_data["type"] == "configure":
             response = self.handleConfigEvent(loaded_data["data"])
             self.logger.debug("Response to configure request: %s", response)
-        elif loaded_data["type"] == "exchange_run":
-            response = self.handleRunRequest(loaded_data["exchange_id"])
-            self.logger.debug("exchange run finished! Response: {}".format(
-                                                               response))
         connection.send(pickle.dumps(response))
         connection.close()
 

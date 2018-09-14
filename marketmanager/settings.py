@@ -23,11 +23,13 @@ CELERY_RESULT_BACKEND = 'django-db'
 CELERY_TRACK_STARTED = True
 BROKER_CONNECTION_TIMEOUT = 3
 # Get the configuration
-ALLOWED_HOSTS = DATABASES = SECRET_KEY = DEBUG\
-              = STORAGE_EXCHANGE_URL = BROKER_URL = None
+ALLOWED_HOSTS = DATABASES = SECRET_KEY = DEBUG = MARKET_MANAGER_DAEMON_HOST \
+              = STORAGE_EXCHANGE_URL = BROKER_URL \
+              = MARKET_MANAGER_DAEMON_PORT = None
 
 for setting in ['ALLOWED_HOSTS', 'DATABASES', 'SECRET_KEY', "DEBUG",
-                "STORAGE_EXCHANGE_URL", "BROKER_URL"]:
+                "COIN_MANAGER_URL", "BROKER_URL", "MARKET_MANAGER_DAEMON_HOST",
+                "MARKET_MANAGER_DAEMON_PORT"]:
     try:
         globals()[setting] = getattr(config, setting)
     except AttributeError:
@@ -106,6 +108,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_celery_results',
     'django_filters',
+    'daemon',
     'api',
 ]
 

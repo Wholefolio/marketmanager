@@ -3,11 +3,7 @@ from django.db import models
 
 
 class Exchange(models.Model):
-    """Adapters model that houses the created exchanges.
-
-    Fields: name, created(UNIX timestmap), last(UNIX timestamp),
-    storage_exchange_id - ID id of the exchange in the storage app.
-    """
+    """Exchange model - summary and info on different crypto exchanges."""
     name = models.CharField(max_length=64, unique=True)
     logo = models.CharField(max_length=256, null=True)
     url = models.CharField(max_length=128, null=True)
@@ -50,7 +46,7 @@ class Market(models.Model):
 
 
 class ExchangeStatus(models.Model):
-    """Adapter status model."""
+    """Exchange status model - current status of the exchange data gather."""
 
     exchange = models.OneToOneField(Exchange, on_delete=models.CASCADE)
     last_run = models.DateTimeField(null=True)

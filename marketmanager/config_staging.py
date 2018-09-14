@@ -9,9 +9,14 @@ DEBUG = environ.get("MARKET_MANAGER_DEBUG", False)
 ALLOWED_HOSTS = ["marketmanager", "marketmanager-api", "marketmanager-daemon",
                  "marketmanager.default.svc.cluster.local"]
 
-STORAGE_EXCHANGE_URL = environ.get("STORAGE_EXCHANGE_URL", False)
+COIN_MANAGER_URL = environ.get("COIN_MANAGER_URL", False)
 
 DATABASES = get_db_details_postgres()
 
 # RabbitMQ
 BROKER_URL = environ.get("BROKER_URL")
+
+
+# Connection to the marketmanager-daemon service
+MARKET_MANAGER_DAEMON_HOST = environ.get("MARKET_MANAGER_DAEMON_HOST")
+MARKET_MANAGER_DAEMON_PORT = int(environ.get("MARKET_MANAGER_DAEMON_PORT"))

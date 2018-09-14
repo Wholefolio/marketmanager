@@ -10,12 +10,14 @@ from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django_celery_results.models import TaskResult
+from django.urls import reverse
 
 
 from applib.daemonclient import Client
 from api import models
 from api import serializers
 from api import filters
+from api.tasks import fetch_exchange_data
 
 CACHE_TTL = getattr(settings, 'CACHE_TTL', 120)
 
@@ -33,28 +35,34 @@ class DaemonStatus(ViewSet):
     def list(self, request):
         """Get the status of marketmanager daemon."""
         try:
-            client = Client(settings.MARKET_MANAGER_DAEMON['sock_file'])
+            connection = (settings.MARKET_MANAGER_DAEMON_HOST,
+                          settings.MARKET_MANAGER_DAEMON_PORT)
+            client = Client(connection)
             client.connect()
             output = client.getStatus(get_request_id('status'))
             return Response(output, status=status.HTTP_200_OK)
         except ConnectionError:
-            output = "Can't connect to MarketManager daemon."
+            output = {"error": "Can't connect to MarketManager daemon."}
             return Response(output, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except FileNotFoundError:
-            output = "Marketmanager socket file not found."
+            output = {"error": "Marketmanager socket file not found."}
             return Response(output, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 class ExchangeRun(ViewSet):
     def create(self, request, pk):
-        client = Client(settings.MARKET_MANAGER_DAEMON['sock_file'])
-        client.connect()
-        request = {"type": "exchange_run", "exchange_id": pk}
-        output = client.sendRequest(request)
-        if output:
+        host = request.META['HTTP_HOST']
+        path = reverse("api:task_results-list")
+        task_id = fetch_exchange_data.delay(pk)
+        if task_id:
+            output = "MarketManager has accepted exchange run. "
+            output += "Task: http://{}{}?task_id={}".format(host, path,
+                                                            task_id)
             return Response(output, status=status.HTTP_200_OK)
         else:
-            return Response(status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            msg = {"error":
+                   "No task created in celery for exchange id: {}".format(pk)}
+            return Response(msg, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 class ExchangeViewSet(ModelViewSet):

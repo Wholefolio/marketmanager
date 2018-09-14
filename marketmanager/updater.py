@@ -1,6 +1,7 @@
 import logging
 from django.utils import timezone
 from django.db import transaction
+from django.conf import settings
 
 from api.models import Exchange, Market
 
@@ -55,11 +56,16 @@ class ExchangeUpdater:
             self.updateExistingMarkets(current_data)
         time_delta = timezone.now().timestamp() - current_time
         self.logger.info("Update finished in: {} seconds".format(time_delta))
+        self.summarizeData()
         self.updateExchange(exchange)
         return "Data update successful for exchange: {}".format(exchange)
 
+    def summarizeData(self):
+        """Create a summary of the market data we have for the exchange."""
+
+
     def updateExchange(self, exchange):
-        """Patch the marketmanager exchange last updated timestamp."""
+        """Patch the exchange last updated timestamp."""
         self.logger.info("Updating Exchange {}.".format(exchange.name))
         timestamp = "{}".format(timezone.now())
         exchange.last_updated = timestamp
