@@ -1,6 +1,5 @@
 """MarketManager class test suite."""
 import unittest
-from unittest.mock import patch
 import os
 import time
 import pickle
@@ -130,20 +129,6 @@ class TestMarketManager(unittest.TestCase):
         s.close()
         self.assertEqual((res["type"], res["id"]), ("status-response", 1))
         p.terminate()
-
-    def testHandleRunRequest_NotExisting(self):
-        """Test running an adapter through this method."""
-        result = self.manager.handleRunRequest(150)
-        # The result is a message we relay back as a HTTP response
-        self.assertTrue("error" in result)
-
-    @patch("marketmanager.marketmanager.fetch_exchange_data")
-    def testHandleRunRequest_NoTask(self, mock_item):
-        """Test running an adapter through this method."""
-        mock_item.return_value = None
-        result = self.manager.handleRunRequest(150)
-        # The result is a message we relay back as a HTTP response
-        self.assertTrue("error" in result)
 
 # Test main processes - scheduler, poller
 

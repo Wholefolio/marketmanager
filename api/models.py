@@ -40,6 +40,11 @@ class Market(models.Model):
     bid = models.FloatField()
     ask = models.FloatField()
 
+    def __str__(self):
+        """Return a human readable representation of the model instance."""
+        return "{} (Volume: {}, Exchange: {})".format(self.name,
+                                                      self.volume,
+                                                      self.exchange)
     class Meta:
         db_table = "markets"
         unique_together = (('name', 'exchange'))

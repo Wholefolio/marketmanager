@@ -16,5 +16,3 @@ urlpatterns = router.urls
 urlpatterns.append(url(r'^exchanges/(?P<pk>[0-9]+)/run/',
                        views.ExchangeRun.as_view({'post': 'create'}),
                        name="adapter_run"))
-
-print(urlpatterns)
