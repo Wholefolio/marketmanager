@@ -84,7 +84,7 @@ class TestUpdater(unittest.TestCase):
         data_map = {"ICX": 6, "BNB": 10}
         mock_result.return_value = data_map
         self.updater.summarizeData(self.exchange)
-        quote = self.data["ICX-BNB"]["quote"]
+        quote = self.data["ICX-BNB"]["base"]
         exchange_volume = self.data["ICX-BNB"]["volume"] * data_map[quote]
         self.assertEqual(self.exchange.volume, exchange_volume)
         self.assertEqual(self.exchange.top_pair, "ICX-BNB")
