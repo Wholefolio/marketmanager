@@ -31,16 +31,16 @@ def fetch_exchange_data(exchange_id):
             quote, base = values['info']['symbol'].split("_")
         name = "{}-{}".format(quote, base)
         # Set them to 0 as there might be nulls
-        last = bid = ask = quoteVolume = 0
-        for item in ["last", "bid", "ask", "quoteVolume"]:
+        temp = {"last": 0, "bid": 0, "ask": 0, "quoteVolume": 0}
+        for item in temp.keys():
             if values[item]:
-                vars()[item] = values[item]
+                temp[item] = values[item]
         update_data[name] = {"base": base,
                              "quote": quote,
-                             "last": last,
-                             "bid": bid,
-                             "ask": ask,
-                             "volume": quoteVolume,
+                             "last": temp["last"],
+                             "bid": temp["bid"],
+                             "ask": temp["ask"],
+                             "volume": temp["quoteVolume"],
                              "exchange_id": exchange_id
                              }
     updater = ExchangeUpdater(exchange_id, update_data)

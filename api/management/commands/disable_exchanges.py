@@ -17,15 +17,15 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options["all"]:
             for exchange in Exchange.objects.all():
-                exchange.enabled = True
+                exchange.enabled = False
                 exchange.save()
             return self.style.SUCCESS("All existing exchanges modified!")
         for i in options["exchange_id"]:
             try:
                 exchange = Exchange.objects.get(id=i)
-                exchange.enabled = True
+                exchange.enabled = False
                 exchange.save()
-                msg = "Exchange enabled successfully: {}".format(exchange.id)
+                msg = "Exchange disabled successfully: {}".format(exchange.id)
                 self.stdout.write(self.style.SUCCESS(msg))
             except Exchange.DoesNotExist:
                 msg = "Exchange not found"

@@ -71,6 +71,8 @@ class ExchangeViewSet(ModelViewSet):
     queryset = models.Exchange.objects.all()
     serializer_class = serializers.ExchangeSerializer
     filter_class = filters.ExchangeFilter
+    filter_backends = (DjangoFilterBackend, OrderingFilter)
+    ordering_fields = ('name', 'volume', 'top_pair', 'top_pair_volume')
 
     @method_decorator(cache_page(CACHE_TTL))
     def dispatch(self, *args, **kwargs):
