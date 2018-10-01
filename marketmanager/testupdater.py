@@ -67,8 +67,12 @@ class TestUpdater(unittest.TestCase):
         self.updater.updateExchange(self.exchange)
         self.assertTrue(self.exchange.last_updated)
 
-    def testRun(self):
+    # Mock testing
+    @patch("marketmanager.updater.ExchangeUpdater.getBasePrices")
+    def testRun(self, mock_result):
         """Test the main run method."""
+        data_map = {"ICX": 6, "BNB": 10}
+        mock_result.return_value = data_map
         result = self.updater.run()
         # We receieve a success string on finish
         self.assertTrue(isinstance(result, str))
@@ -78,7 +82,6 @@ class TestUpdater(unittest.TestCase):
         # Check if the exchange has been updated
         self.assertTrue(Exchange.objects.all()[0].last_updated)
 
-    # Mock testing
     @patch("marketmanager.updater.ExchangeUpdater.getBasePrices")
     def testSummarizeData(self, mock_result):
         data_map = {"ICX": 6, "BNB": 10}
