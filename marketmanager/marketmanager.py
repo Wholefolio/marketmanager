@@ -181,7 +181,6 @@ class MarketManager(object):
 
     def getExchanges(self, exchange_id=None):
         """Get the exchange(s) from the db. Wrap around the DB Errors."""
-        exchanges = []
         if not exchange_id:
             exchanges = Exchange.objects.filter(enabled=True)
         else:
@@ -190,14 +189,15 @@ class MarketManager(object):
             # Django executes the SQL on the first invokation of the result
             # Make sure we capture an error
             self.logger.info("Got exchanges: {}".format(exchanges))
-        except django.db.utils.OperationalError as e:
+        except (django.db.utils.OperationalError,
+                django.db.utils.InterfaceError) as e:
             msg = "DB operational error. Error: {}".format(e)
             self.logger.error(msg)
+            exchanges = []
         return exchanges
 
     def getExchangeStatus(self, exc_id=None):
         """Get the ExchangeStatus entry(s). Wrap errors from the DB."""
-        statuses = []
         if exc_id:
             queryset = ExchangeStatus.objects.filter(exchange_id=exc_id)
             if not queryset:
@@ -214,6 +214,7 @@ class MarketManager(object):
         except django.db.utils.OperationalError as e:
             msg = "DB operational error. Error: {}".format(e)
             self.logger.error(msg)
+            # statuses = []
         return statuses
 
     def poller(self):
@@ -221,7 +222,6 @@ class MarketManager(object):
         self.logger.info("Starting poller.")
         while True:
             statuses = self.getExchangeStatus()
-            self.logger.info("Got statuses: {}".format(statuses))
             if not statuses:
                 sleep(5)
                 continue
