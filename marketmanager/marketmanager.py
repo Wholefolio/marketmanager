@@ -46,12 +46,16 @@ class MarketManager(object):
         run_id = status.last_run_id
         try:
             task = TaskResult.objects.get(task_id=run_id)
+            self.logger.debug("Got task result for {}".format(status))
         except TaskResult.DoesNotExist:
             msg = {"error": "Task result doesn't exist!"}
             self.logger.critical(msg)
             status.running = False
             status.save()
             return msg
+        except django.db.utils.OperationalError as e:
+            msg = "DB operational error. Error: {}".format(e)
+            self.logger.error(msg)
         success = False
         if task.status != "FAILURE" and task.status != "SUCCESS":
             # Exchange is still in pending or running
@@ -125,7 +129,8 @@ class MarketManager(object):
         return response
 
     def handler(self, connection, addr):
-        """Handle an incoming request."""
+        """Handle an incoming request.
+        We support 2 types of incoming - configure and status."""
         pid = os.getpid()
         BUFFER = 1024
         self.logger.info("Handling connection [%s].", pid)
@@ -161,15 +166,7 @@ class MarketManager(object):
         connection.close()
 
     def incoming(self):
-        """Loop upon the incoming queue for incoming requests.
-
-        Incoming request types: ['status', 'configure']
-        Workflow:
-        1) Get the request from the queue
-        2) Sanitize it by checking the request type
-        3) Pass it to the appropriate method for execution
-        4) Put the response in the outbound queue and loop again
-        """
+        """Loop upon the incoming queue for incoming requests."""
         with ThreadPoolExecutor(max_workers=self.worker_limit) as executor:
             with socket(AF_INET, SOCK_STREAM) as sock:
                 sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
@@ -183,25 +180,47 @@ class MarketManager(object):
                 self.logger.info("Server shutting down")
 
     def getExchanges(self, exchange_id=None):
-        """Get the enabled exchanges from the db."""
+        """Get the exchange(s) from the db. Wrap around the DB Errors."""
+        exchanges = []
         if not exchange_id:
-            return Exchange.objects.filter(enabled=True)
-        return Exchange.objects.filter(pk=exchange_id)
+            exchanges = Exchange.objects.filter(enabled=True)
+        else:
+            exchanges = Exchange.objects.filter(pk=exchange_id)
+        try:
+            # Django executes the SQL on the first invokation of the result
+            # Make sure we capture an error
+            self.logger.info("Got exchanges: {}".format(exchanges))
+        except django.db.utils.OperationalError as e:
+            msg = "DB operational error. Error: {}".format(e)
+            self.logger.error(msg)
+        return exchanges
 
-    def getExchangeStatus(self, exchange_id):
-        """Get the ExchangeStatus entry for the specific id."""
-        queryset = ExchangeStatus.objects.filter(exchange_id=exchange_id)
-        if not queryset:
-            status = ExchangeStatus.objects.create(exchange_id=exchange_id)
-            status.save()
-            return status
-        return queryset[0]
+    def getExchangeStatus(self, exc_id=None):
+        """Get the ExchangeStatus entry(s). Wrap errors from the DB."""
+        statuses = []
+        if exc_id:
+            queryset = ExchangeStatus.objects.filter(exchange_id=exc_id)
+            if not queryset:
+                statuses = ExchangeStatus.objects.create(exchange_id=exc_id)
+                statuses.save()
+            else:
+                statuses = queryset[0]
+        else:
+            statuses = ExchangeStatus.objects.filter(running=True)
+        try:
+            # Django executes the SQL on the first invokation of the result
+            # Make sure we capture an error
+            self.logger.info("Got statuses: {}".format(statuses))
+        except django.db.utils.OperationalError as e:
+            msg = "DB operational error. Error: {}".format(e)
+            self.logger.error(msg)
+        return statuses
 
     def poller(self):
         """Poller - checks the status of each RUNNING exchange."""
         self.logger.info("Starting poller.")
         while True:
-            statuses = ExchangeStatus.objects.filter(running=True)
+            statuses = self.getExchangeStatus()
             self.logger.info("Got statuses: {}".format(statuses))
             if not statuses:
                 sleep(5)
@@ -228,7 +247,6 @@ class MarketManager(object):
         self.logger.info("Starting main event loop.")
         while True:
             exchanges = self.getExchanges()
-            self.logger.info("Got exchanges: {}".format(exchanges))
             if not exchanges:
                 sleep(5)
                 continue

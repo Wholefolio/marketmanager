@@ -1,4 +1,6 @@
 import ccxt
+import logging
+from django.db.utils import OperationalError
 
 from marketmanager.updater import ExchangeUpdater
 from marketmanager.celery import app
@@ -8,7 +10,14 @@ from api.models import Exchange
 @app.task
 def fetch_exchange_data(exchange_id):
     """Task to fetch and update exchange data via ccxt."""
-    exchange = Exchange.objects.get(id=exchange_id)
+    logger = logging.getLogger(__name__)
+    try:
+        exchange = Exchange.objects.get(id=exchange_id)
+        logger.info("Got exchange {}".format(exchange))
+    except OperationalError as e:
+        msg = "DB operational error. Error: {}".format(e)
+        logger.error(msg)
+        return msg
     if exchange.name.lower() not in ccxt.exchanges:
         return "Exchange doesn't exist"
     # Init the exchange from the ccxt module
