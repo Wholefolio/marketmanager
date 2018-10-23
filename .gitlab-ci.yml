@@ -29,7 +29,7 @@ unittests:
 release-image:
     stage: release
     script:
-      - docker build --build-arg SSH_PRIVATE_KEY="${SSH_PRIVATE_KEY}" -t $REGISTRY:latest .
+      - docker build -t $REGISTRY:latest .
       - docker tag $REGISTRY:latest $REGISTRY:${CI_PIPELINE_ID}
       - docker push $REGISTRY:${CI_PIPELINE_ID}
       - docker push $REGISTRY:latest

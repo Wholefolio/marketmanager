@@ -33,14 +33,16 @@ def fetch_exchange_data(exchange_id):
     else:
         data = ccxt_exchange.fetchTickers()
     update_data = {}
-    for values in data.values():
+    for symbol, values in data.values():
         if values['symbol']:
-            quote, base = values['symbol'].split("/")
+            base, quote = values['symbol'].split("/")
+        elif "symbol" in values['info']:
+            base, quote = values['info']['symbol'].split("_")
         else:
-            quote, base = values['info']['symbol'].split("_")
-        name = "{}-{}".format(quote, base)
+            base, quote = symbol.split("/")
+        name = "{}-{}".format(base, quote)
         # Set them to 0 as there might be nulls
-        temp = {"last": 0, "bid": 0, "ask": 0, "quoteVolume": 0}
+        temp = {"last": 0, "bid": 0, "ask": 0, "baseVolume": 0}
         for item in temp.keys():
             if values[item]:
                 temp[item] = values[item]
@@ -49,7 +51,7 @@ def fetch_exchange_data(exchange_id):
                              "last": temp["last"],
                              "bid": temp["bid"],
                              "ask": temp["ask"],
-                             "volume": temp["quoteVolume"],
+                             "volume": temp["baseVolume"],
                              "exchange_id": exchange_id
                              }
     updater = ExchangeUpdater(exchange_id, update_data)
