@@ -185,15 +185,7 @@ class MarketManager(object):
             exchanges = Exchange.objects.filter(enabled=True)
         else:
             exchanges = Exchange.objects.filter(pk=exchange_id)
-        try:
-            # Django executes the SQL on the first invokation of the result
-            # Make sure we capture an error
-            self.logger.info("Got exchanges: {}".format(exchanges))
-        except (django.db.utils.OperationalError,
-                django.db.utils.InterfaceError) as e:
-            msg = "DB operational error. Error: {}".format(e)
-            self.logger.error(msg)
-            exchanges = []
+        self.logger.info("Got exchanges: {}".format(exchanges))
         return exchanges
 
     def getExchangeStatus(self, exc_id=None):

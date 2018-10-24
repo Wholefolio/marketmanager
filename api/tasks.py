@@ -33,7 +33,7 @@ def fetch_exchange_data(exchange_id):
     else:
         data = ccxt_exchange.fetchTickers()
     update_data = {}
-    for symbol, values in data.values():
+    for symbol, values in data.items():
         if values['symbol']:
             base, quote = values['symbol'].split("/")
         elif "symbol" in values['info']:
