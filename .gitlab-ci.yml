@@ -50,6 +50,7 @@ db:migrate-staging:
      DB_HOSTNAME: "$STAGING_DB_HOST"
      DB_USERNAME: "$GCP_DB_USERNAME"
      DB_PASSWORD: "$GCP_DB_PASSWORD"
+     MARKET_MANAGER_DAEMON_PORT: 5000
    when: manual
    script:
       - python3 manage.py migrate
