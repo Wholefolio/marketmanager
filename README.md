@@ -1,57 +1,103 @@
-The market manager app is an exchange based daemon with a REST API, which manages the exchanges in a interval based fashion. Exchange CRUD is done via the REST API. The daemon runs through all currently enabled exchanges, checks timestamps and sends them to coiner to gather data for them based on the python3 ccxt module. More details on the mechanics are listed below.  
+# MarketManager - a django application for harvesting Crypto Exchange data(Bittrex, Binance, Coinbase, etc)
+[![pipeline status](https://gitlab.com/cryptohunters/marketmanager/badges/master/pipeline.svg)](https://gitlab.com/cryptohunters/marketmanager/commits/master)  
+The market manager app has 3 different aspects to its workings - the REST API, the daemon and Celery(the task executor).
+
+# Installation  
+1. Install python3 and pip(Ubuntu examples):
+```apt-get install python3```
+```apt-get install python3-pip```
+2. Install the app dependencies:
+```pip3 install configs/requirements.txt```
+3. Get docker: https://docs.docker.com/install/linux/docker-ce/ubuntu/#uninstall-old-versions
+4. Start a POSTGRESQL database:
+```docker run postgresql:latest -e POSTGRES_USERNAME=marketmanager -e POSTGRES_PASSWORD=marketmanager --name db```
+5. Connect to the database in the container and create a database.
+6. Create ENVIRONMENT variables with the IP of the container, username, password and database name(see dev.env):
+```source dev.env```
+7. Clone the application locally:
+```git clone https://gitlab.com/cryptohunters/marketmanager/```
+
+# Application management:  
+1. The daemon is managed via the django manage.py entry point in the root directory. It has 4 parameters - start/stop/restart/status.  
+Examples:  
+```python3 manage.py daemon start``` - start the daemon.  
+```python3 manage.py daemon stop``` - stop the daemon.  
+2. The API can be exposed via the standard django dev server or via uwsgi:
+```python3 manage.py runserver``` - django dev server for testing.  
+```uwsgi configs/uwsgi.ini``` - uwsgi server for production/staging.  
+3. Celery task executor is started via celery:  
+```celery  worker -A marketmanager  --loglevel=DEBUG``` - debug worker with 1 process.  
+```celery multi start worker1 worker2 -A marketmanager``` - daemon workers.  
 
 
-# API endpoints:
-1. http://$MANAGER_IP/api/exchanges/ - allowed operations are POST/GET.  
-2. http://$MANAGER_IP/api/exchanges/$ID/ - allowed operations are GET/PATCH/DELETE  
-3. http://$MANAGER_IP/api/exchanges/$ID/run/ - allowed operations are POST  
+
+## Our setup:
+Our setup is in GKE with a PostgreSQL DB and for the basic setup we have 4 deployments:
+1. API - separate pod(s) running uwsgi for access to the REST
+2. Daemon - deployment for the daemon, which is the core of the data gathering.  
+3. RabbitMQ - deployment for messaging between the Daemon and Celery deployments.  
+4. Celery - pod(s) for executing the tasks passed from the daemon.
+With this setup we achieve great speed in writing/fetching data from the DB due to deployments sharing the same models and being in the same project.
+
+# API endpoints and data models:
+## API endpoints
+1. http://$MANAGER_IP/api/exchanges/ - list/create exchanges. Allowed operations are POST/GET.  
+2. http://$MANAGER_IP/api/exchanges/$ID/ - details/deletion/update of an exchange. Allowed operations are GET/PATCH/DELETE  
+3. http://$MANAGER_IP/api/exchanges/$ID/run/ - allowed operations are POST.  
 4. http://$MANAGER_IP/api/status/ - get the status of the daemon
+5. http://$MANAGER_IP/api/markets/ - list of markets in a exchange.  
 
-# Exchange parameters on creation:
-**Name** - the name of the exchange.  
-**Enabled** - whether the daemon should work on the exchange or not.
-**Logo** - the url to logo of the exchange
-**Url** - URL to the website of the exchange
-**API_URL** - URL to the API of the exchange
-**Volume** - Total volume of the exchange in USD
-**Top_Pair** - the top pair by trading volume
-**Top_Pair_volume** - total trading volume of the top trading pair(calculated based on the base symbol - aka the left of the pair. Example USDT-ETH, USDT is the base)
+## Exchange - the main exchange fields:
+**Name** - the name of the exchange. Required  
+**Enabled** - whether the daemon should gather data for the exchange or not. Default: True  
+**Logo** - the url to logo of the exchange.  
+**Url** - URL to the website of the exchange  
+**API_URL** - URL to the API of the exchange  
+**Volume** - Total volume of the exchange in USD  
+**Top_Pair** - the top pair by trading volume  
+**Top_Pair_volume** - total trading volume of the top trading pair(calculated based on the base symbol.  
 
 **Created** - Timestamp of the exchange creation date and time.  
-**Updated** - Timestamp for the last modification on the exchange via the API.  
+**Updated** - Timestamp for the last modification on the exchange.  
 **Interval** - the interval between each exchange run.  
-**Last update** - this shows when was the last time COINER SUCCESSFULLY gathered data for this exchange.
+**Last update** - this shows when was the last time a task has SUCCESSFULLY gathered data for this exchange.
 
-# ExchangeStatus
-This model defines the exchange status - whether it's currently running, when was the last run and the last run's ID. Fields:
+## ExchangeStatus:
+This model defines the exchange status - whether it's currently running, when was the last run and the last run's ID. **Automatically created**. The poller method uses this model to determine the current state of the exchange - running, stale or not running.
+Fields:  
 **Exchange** - foreign key to the exchange model.  
 **Last_run** - date and time of the last run.  
-**Last_run_id** - ID of the last run in the Coiner APP.  
-**Time_started** - time 
+**Last_run_id** - ID of the last known task from celery.  
+**Time_started** - time of starting the task.  
 
-# Market manager daemon:  
-The daemon is managed via the marketmanager.py entry point in the root directory. It has 4 parameters - start/stop/restart/status.
+## Market model:
+This model defines a Market - the basis for a trading pair within an exchange. Fields:  
+**Name** - name of the trading pair. Required.  
+**Base** - name of base in which the markets trades. Required.  
+**Quote** - the name of the currency that is being traded against the base. Required.  
+**Exchange** - foreign key to the Exchange model.  
+All of the ones below are quantified by means of the **BASE**:
+**Volume** - trading volume of the pair.  
+**Last** - price of the last trade that has happened in the pair.  
+**Bid** - current bid price for the pair.  
+**Ask** - current ask price for the pair.  
 
-# Daemon explanation and working:  
-The daemon uses the UNIX double fork mechanism to daemonize itself upon launch. It has 4 starting Processes(not threads) - the Main process, the Incoming process, the Poller process and the Manager process. The first three are part of the main coiner class in src/coiner.py and the last(Manager) is created during instantiation for passing pickleble objects between the processes.  
+# Developer notes
+## How it works
+The daemon runs through all currently enabled exchanges, checks timestamps and uses a celery task to gather data for them based on the python3 ccxt module.
+## Marketmanager built-ins that are running in separate processes:
+1. Incoming process - listens for incoming events on a UNIX socket. This is still WIP and isn't finished - the only thing that it supports right now is for getting the status of the daemon. Check the applib repo.  
 
-1. Manager process:
-The manager process simply passes pickled objects between the starter process(before the 2 forks) and the incoming/main processes.
+2. Main process - this is where the main looping logic lies. It fetches all ENABLED exchanges via the django model and runs through each exchange, checking if it's currently running and comparing the last run timestamp and the current time. If it's meant to be run, the main process sends it to the Coiner App for execution. The response is then checked and if the response is 200 OK, it updates the ExchangeStatus last_run_id and state to running.  
 
-2. Incoming process - listens for incoming events on a UNIX socket. This is still WIP and isn't finished - the only thing that it supports right now is for getting the status of the daemon and running an exchange on demand.  
+3. Poller process - this process runs periodic checks against the Coiner app. It fetches all the exchanges that are in state running and then checks if the exchange has finished running and if it has crashed.  
 
-3. Main process - this is where the main looping logic lies. This is based of the MarketManager class method main. It fetches all ENABLED exchanges via the django model and runs through each exchange, checking if it's currently running and comparing the last run timestamp and the current time. If it's meant to be run, the main process sends it to the Coiner App for execution. The response is then checked and if the response is 200 OK, it updates the ExchangeStatus last_run_id and state to running.  
-
-4. Poller process - this process runs periodic checks against the Coiner app. It fetches all the exchanges that are in state running and then checks if the exchange has finished running and if it has crashed.  
-
-# Configs:
+# Other
+## Configs:
 Daemon and API configuration is dependent on the environment. Configuration is fetched from environmental variables.    
-Dev config in marketmanager/config_dev.py. Staging config in marketmanager/config_staging. Additional configurations plus the requirements for the container, nginx, uwsgi are in ./configs.
+Dev config in marketmanager/config_dev.py. Staging config in marketmanager/config_staging. Additional configurations plus the requirements for the pip modules and uwsgi are in ./configs.
+
+## Exchange:
+The main "actor" is an exchange - it must be present in the ccxt python3 library. Each exchange has methods for fetching data from the respective exchanges (checkout the github page of the lib:https://github.com/ccxt/ccxt/tree/master/python)
 
 
-# exchange:
-The main "worker" is an exchange - it must follow certain requirements to work properly.  
-1. The exchange filename and the the main class name MUST be the same.  
-2. The main event method MUST be named "run" and MUST NOT take any parameters.  
-3. The exchange class contructor MUST take in two arguments - exchange params(optional parameters for the exchange, if the programmer sees fit) and STORAGE_SOURCE_ID (mentioned above). The storage source ID is needed when returning the parsed data in JSON format to the exchangeworker class.  
-The exchange can have as many other methods as you want.  
