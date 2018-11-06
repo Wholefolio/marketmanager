@@ -47,6 +47,7 @@ db:migrate-staging:
    tags:
      - docker
    variables:
+     PY_ENV: "staging"
      DB_HOSTNAME: "$STAGING_DB_HOST"
      DB_USERNAME: "$GCP_DB_USERNAME"
      DB_PASSWORD: "$GCP_DB_PASSWORD"
