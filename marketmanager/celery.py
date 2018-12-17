@@ -1,6 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 import os
 from celery import Celery
+from celery.schedules import crontab
 
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'marketmanager.settings')
@@ -15,3 +16,11 @@ app.config_from_object('django.conf:settings')
 
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
+
+# Beat scheduler
+app.conf.beat_schedule = {
+    'clear_task_results': {
+        'task': 'adapters.tasks.clear_task_results',
+        'schedule': crontab(minute=0, hour=10, day_of_week=0),
+    },
+}

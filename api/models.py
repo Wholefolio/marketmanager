@@ -6,8 +6,8 @@ class Exchange(models.Model):
     """Exchange model - summary and info on different crypto exchanges."""
     name = models.CharField(max_length=64, unique=True)
     logo = models.CharField(max_length=256, null=True)
-    url = models.CharField(max_length=128, null=True)
-    api_url = models.CharField(max_length=128, null=True)
+    url = models.URLField(max_length=128, null=True)
+    api_url = models.URLField(max_length=128, null=True)
     volume = models.FloatField(null=True)
     top_pair = models.CharField(max_length=20, null=True)
     top_pair_volume = models.FloatField(null=True)
