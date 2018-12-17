@@ -1,10 +1,8 @@
 from applib.tools import get_db_details_postgres
 
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "5F2b(#0Znpt1H83&RLoIAUBDrQydu6M+i!TE_*zeOjsVC-W@fG"
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 # Specify the allowed hosts for the app
