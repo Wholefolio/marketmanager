@@ -23,7 +23,7 @@ unittests:
    - docker
   image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
   script:
-    - python3 manage.py test
+    - python3 manage.py test --noinput
 
 release-image:
     stage: release
