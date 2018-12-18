@@ -14,7 +14,7 @@ variables:
   GCP_CONTEXT: gke_production-185413_us-central1-a_crypto-test
   SECRET_KEY: "testing_key"
   PY_ENV: staging
-  MARKET_MANAGER_DAEMON_PORT: localhost
+  MARKET_MANAGER_DAEMON_HOST: localhost
   MARKET_MANAGER_DAEMON_PORT: 5000
 
 unittests:
