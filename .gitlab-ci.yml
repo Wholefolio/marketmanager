@@ -11,7 +11,7 @@ variables:
   DB_PASSWORD: marketmanager
   DB_HOSTNAME: 192.168.13.187
   STAGING_HOSTNAME: 35.225.253.18
-  GCP_CONTEXT: gke_production-185413_us-central1-a_crypto-test
+  GCP_CONTEXT: gke_production-185413_us-central1-a_main
   SECRET_KEY: "testing_key"
   PY_ENV: staging
   MARKET_MANAGER_DAEMON_HOST: localhost
