@@ -7,7 +7,7 @@ DEBUG = environ.get("MARKET_MANAGER_DEBUG", False)
 
 # Specify the allowed hosts for the app
 ALLOWED_HOSTS = ["marketmanager", "marketmanager-api", "marketmanager-daemon",
-                 "marketmanager.default.svc.cluster.local"]
+                 "api.wholefolio.io"]
 
 COIN_MANAGER_URL = environ.get("COIN_MANAGER_URL", False)
 
