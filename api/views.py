@@ -1,7 +1,8 @@
 """API views."""
 import hashlib
 import time
-from rest_framework.viewsets import ModelViewSet, ViewSet, GenericViewSet
+from rest_framework.viewsets import (ViewSet, GenericViewSet,
+                                     ReadOnlyModelViewSet)
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.filters import OrderingFilter
@@ -65,7 +66,7 @@ class ExchangeRun(ViewSet):
             return Response(msg, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
-class ExchangeViewSet(ModelViewSet):
+class ExchangeViewSet(ReadOnlyModelViewSet):
     """Handle exchange creation, listing and deletion."""
 
     queryset = models.Exchange.objects.all()
@@ -79,7 +80,7 @@ class ExchangeViewSet(ModelViewSet):
         return super(ExchangeViewSet, self).dispatch(*args, **kwargs)
 
 
-class MarketViewSet(ModelViewSet):
+class MarketViewSet(ReadOnlyModelViewSet):
     queryset = models.Market.objects.all()
     serializer_class = serializers.MarketSerializer
     filter_class = filters.MarketFilter
@@ -91,7 +92,7 @@ class MarketViewSet(ModelViewSet):
         return super(MarketViewSet, self).dispatch(*args, **kwargs)
 
 
-class ExchangeStatusViewSet(ModelViewSet):
+class ExchangeStatusViewSet(ReadOnlyModelViewSet):
     """Handle exchange creation, listing and deletion."""
 
     queryset = models.ExchangeStatus.objects.all()
