@@ -4,6 +4,8 @@ from rest_framework.test import APIClient
 from rest_framework import status
 from django.urls import reverse
 
+from api import models
+
 
 def check_response_items(request, response, test_object):
     """Check the response for missing data from the request."""
@@ -46,10 +48,8 @@ class ExchangesTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.request = {"name": "Bittrex", "interval": 300}
-        self.response = self.client.post(reverse("api:exchange-list"),
-                                         self.request,
-                                         format="json")
-        check_response_items(self.request, self.response, self)
+        exchange = models.Exchange(**self.request)
+        exchange.save()
         self.get = self.client.get(reverse("api:exchange-list"))
         # Get the current ID from the get request
         self.get_id = self.get.json()["results"][0]["id"]
@@ -58,17 +58,23 @@ class ExchangesTest(TestCase):
         self.assertEqual(self.get.json()["results"][0]["name"],
                          self.request["name"])
 
-    def testDelete(self):
-        delete = self.client.delete(reverse("api:exchange-detail",
-                                            args=[self.get_id]))
-        self.assertEqual(delete.status_code, status.HTTP_204_NO_CONTENT)
-
-    def testPatch(self):
-        request = {"url": "http://testurl.com"}
+    def testUnallowedMethods(self):
+        """Test the unallowed methods - DELETE, POST, PUT, PATCH."""
+        # POST
+        response = self.client.post(reverse("api:exchange-list"), self.request)
+        self.assertEqual(response.status_code, 405)
+        # PUT
+        response = self.client.post(reverse("api:exchange-detail",
+                                            args=[self.get_id]), self.request)
+        self.assertEqual(response.status_code, 405)
+        # PATCH
         response = self.client.patch(reverse("api:exchange-detail",
-                                             args=[self.get_id]),
-                                     data=request)
-        check_response_items(request, response, self)
+                                             args=[self.get_id]), self.request)
+        self.assertEqual(response.status_code, 405)
+        # DELeTE
+        response = self.client.patch(reverse("api:exchange-detail",
+                                     args=[self.get_id]))
+        self.assertEqual(response.status_code, 405)
 
 
 class MarketsTest(TestCase):
@@ -76,45 +82,47 @@ class MarketsTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         exchange = {"name": "Bittrex", "interval": 300}
-        response = self.client.post(reverse("api:exchange-list"),
-                                    exchange,
-                                    format="json")
-        self.exc_id = response.json()["id"]
-        check_response_items(exchange, response, self)
-        self.market = {"name": "btc-eth", "exchange": self.exc_id,
-                       "volume": 55000, "last": 0.2, "ask": 0.21,
-                       "bid": 0.20, "base": "btc", "quote": "eth"}
-        self.response = self.client.post(reverse("api:market-list"),
-                                         self.market, format="json")
-        check_response_items(self.market, self.response, self)
+        exchange = models.Exchange(**exchange)
+        exchange.save()
+        self.exc_id = exchange.id
+        self.request = {"name": "btc-eth", "exchange_id": exchange.id,
+                        "volume": 55000, "last": 0.2, "ask": 0.21,
+                        "bid": 0.20, "base": "btc", "quote": "eth"}
+        market = models.Market(**self.request)
+        market.save()
         self.get = self.client.get(reverse("api:market-list"))
+        self.get_id = self.get.json()['results'][0]['id']
 
     def testGet(self):
         self.assertEqual(self.get.json()["results"][0]["name"],
-                         self.market["name"])
+                         self.request["name"])
 
     def testFilterGet(self):
-        new_market = {"name": "eth-ltc", "exchange": self.exc_id,
+        new_market = {"name": "eth-ltc", "exchange_id": self.exc_id,
                       "volume": "2500", "last": "0.4", "ask": "0.41",
                       "bid": "0.40", "base": "ltc", "quote": "eth"}
-        resp = self.client.post(reverse("api:market-list"), new_market,
-                                format="json")
-        if resp.status_code != status.HTTP_201_CREATED:
-            self.fail("Couldn't create second market!")
-        resp = self.client.get("/api/markets/?volume__lte=5000")
+        market = models.Market(**new_market)
+        market.save()
+        resp = self.client.get("/markets/?volume__lte=5000")
         self.assertEqual(resp.json()["results"][0]["name"], new_market["name"])
 
-    def testPatch(self):
-        request = {"volume": 45000}
-        get_id = self.get.json()["results"][0]["id"]
-        resp = self.client.patch(reverse("api:market-detail", args=[get_id]),
-                                 request, format="json")
-        check_response_items(request, resp, self)
-
-    def testDelete(self):
-        get_id = self.get.json()["results"][0]["id"]
-        resp = self.client.delete(reverse("api:market-detail", args=[get_id]))
-        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+    def testUnallowedMethods(self):
+        """Test the unallowed methods - DELETE, POST, PUT, PATCH."""
+        # POST
+        response = self.client.post(reverse("api:market-list"), self.request)
+        self.assertEqual(response.status_code, 405)
+        # PUT
+        response = self.client.post(reverse("api:market-detail",
+                                            args=[self.get_id]), self.request)
+        self.assertEqual(response.status_code, 405)
+        # PATCH
+        response = self.client.patch(reverse("api:market-detail",
+                                             args=[self.get_id]), self.request)
+        self.assertEqual(response.status_code, 405)
+        # DELeTE
+        response = self.client.patch(reverse("api:market-detail",
+                                     args=[self.get_id]))
+        self.assertEqual(response.status_code, 405)
 
 
 class ExchangeStatusTest(TestCase):
