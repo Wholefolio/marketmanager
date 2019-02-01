@@ -4,12 +4,18 @@ stages:
   - deploy
   - migrate
 
+services:
+  - postgres:latest
+
 variables:
   REGISTRY: "gcr.io/production-185413/marketmanager"
+  POSTGRES_DB: marketmanager
+  POSTGRES_USER: runner
+  POSTGRES_PASSWORD: ""
   DB_DATABASE: marketmanager
-  DB_USERNAME: marketmanager
-  DB_PASSWORD: marketmanager
-  DB_HOSTNAME: 192.168.13.187
+  DB_USERNAME: runner
+  DB_PASSWORD: ""
+  DB_HOSTNAME: postgres
   STAGING_HOSTNAME: 35.225.253.18
   GCP_CONTEXT: gke_production-185413_us-central1-a_main
   SECRET_KEY: "testing_key"
