@@ -104,6 +104,7 @@ class MarketManager(object):
             msg += " Last run: {},".format(last_run)
             msg += " Interval: {},".format(interval)
             msg += " Current time: {}".format(current_time)
+            msg += " Delta: {}".format(current_time-last_run)
             self.logger.debug(msg)
             if last_run + interval >= current_time:
                 return False
