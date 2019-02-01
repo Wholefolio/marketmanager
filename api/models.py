@@ -45,6 +45,7 @@ class Market(models.Model):
         return "{} (Volume: {}, Exchange: {})".format(self.name,
                                                       self.volume,
                                                       self.exchange)
+
     class Meta:
         db_table = "markets"
         unique_together = (('name', 'exchange'))

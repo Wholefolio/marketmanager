@@ -17,6 +17,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CELERYD_CONCURRENCY = 4
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_TRACK_STARTED = True
+CELERYD_LOG_FORMAT = '{"timestamp":"%(asctime)s","severity":"%(levelname)s",'
+CELERYD_LOG_FORMAT += '"worker":"%(processName)s","task":"%(task_name)s",'
+CELERYD_LOG_FORMAT += ',"task_id":"%(task_id)s","message":"%(message)s"}'
 BROKER_CONNECTION_TIMEOUT = 3
 # Get the configuration
 ALLOWED_HOSTS = DATABASES = SECRET_KEY = DEBUG = MARKET_MANAGER_DAEMON_HOST \
@@ -57,27 +60,6 @@ MARKET_MANAGER_DAEMON = {
     "socket_port": 5000,
     "processes": {
         "incoming": None, "scheduler": None, "poller": None
-    },
-    "logging": {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "formatters": {
-           "simple": {
-             "format": "%(asctime)s %(processName)s [%(funcName)s][%(levelname)s]: %(message)s"
-           }
-        },
-        "handlers": {
-            "log_handler": {
-                "class": "logging.StreamHandler",
-                "level": LOG_LEVEL,
-                "formatter": "simple",
-                "stream": "ext://sys.stderr"
-            }
-        },
-        "root": {
-            "level": LOG_LEVEL,
-            "handlers": ["log_handler"]
-        }
     }
 }
 
@@ -143,7 +125,55 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
+JSON_FORMAT = '{"timestamp":"%(asctime)s","module":"%(module)s"'
+JSON_FORMAT += ',"function":"%(funcName)s","severity":"%(levelname)s"'
+JSON_FORMAT += ',"message":"%(message)s"}'
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'remove_healthchecks': {
+            '()': 'applib.log.FilterHealthChecks',
+        },
+    },
+    'formatters': {
+        # Formatter for the daemon/celery
+        'stdout-formater': {
+            'format': JSON_FORMAT
+        },
+        # Formatter for requests
+        'django.server': {
+           'format': '{"timestamp":"%(server_time)s","message":%(message)s"}',
+        }
+    },
+    'handlers': {
+        'stdout-handler': {
+            "class": "logging.StreamHandler",
+            "level": "DEBUG",
+            'formatter': 'stdout-formater',
+            "stream": "ext://sys.stdout"
+        },
+        'django.server': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'filters': ['remove_healthchecks'],
+            'formatter': 'django.server',
+        },
+    },
+    'loggers': {
+        'marketmanager': {
+            'handlers': ['stdout-handler'],
+            'level': LOG_LEVEL,
+            'propagate': True,
+        },
+        'django.server': {
+            'handlers': ['django.server'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
 # Static files (CSS, JavaScript, Images)
 
 STATIC_URL = '/static/'

@@ -43,6 +43,9 @@ class ExchangeUpdater:
          base USD"""
         url = "{}currencies/".format(settings.COIN_MANAGER_URL)
         response = requests.get(url)
+        elapsed = response.elapsed.microseconds/1000
+        msg = "Currencies fetch elapsed: {} ms".format(elapsed)
+        self.logger.debug(msg)
         if response.status_code != 200:
             msg = "Couldn't fetch current currency data from CoinManager."
             self.logger.error(msg)

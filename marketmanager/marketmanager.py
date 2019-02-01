@@ -14,12 +14,7 @@ from django_celery_results.models import TaskResult
 from api.tasks import fetch_exchange_data
 
 # Set the django settings env variable and load django
-if "DJANGO_SETTINGS_MODULE" not in os.environ:
-    os.environ["DJANGO_SETTINGS_MODULE"] = "marketmanager.settings"
-    django.setup()
-    from api.models import Exchange, ExchangeStatus
-else:
-    from api.models import Exchange, ExchangeStatus
+from api.models import Exchange, ExchangeStatus
 
 
 class MarketManager(object):
@@ -37,8 +32,7 @@ class MarketManager(object):
         self.socket_port = config["socket_port"]
         self.lock_file = config["lock_file"]
         self.worker_limit = int(config["threads"])
-        self.logger = logging.getLogger(__name__)
-        logging.config.dictConfig(config["logging"])
+        self.logger = logging.getLogger("marketmanager")
 
     def checkTaskResult(self, status):
         """Check the status of an running exchange in coiner."""
