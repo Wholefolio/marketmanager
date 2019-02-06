@@ -40,10 +40,22 @@ class MarketManager(object):
         run_id = status.last_run_id
         try:
             task = TaskResult.objects.get(task_id=run_id)
-            self.logger.debug("Got task result for {}".format(status))
+            self.logger.debug("Got task result for {}".format(status.exchange))
         except TaskResult.DoesNotExist:
-            msg = {"error": "Task result doesn't exist!"}
-            self.logger.critical(msg)
+            msg = {"error":
+                   "Task result doesn't exist for {}!".format(status.exchange)}
+            self.logger.error(msg)
+            time_now = timezone.now().timestamp()
+            # Check if there is no task  for more than 15 seconds
+            if status.time_started.timestamp() + 15:
+                msg = "Task result didn't appear for more than 30s!"
+                self.logger.error(msg)
+                if not self.checkCeleryStatus():
+                    # Celery is probably dead or overloaded - leave the task in
+                    # current state
+                    msg = "Celery worker is not responding!"
+                    self.logger.error(msg)
+                    return msg
             status.running = False
             status.save()
             return msg
@@ -53,8 +65,7 @@ class MarketManager(object):
         success = False
         if task.status != "FAILURE" and task.status != "SUCCESS":
             # Exchange is still in pending or running
-            msg = "Exchange {} is in state: {}".format(status.exchange,
-                                                       task.status)
+            msg = "Exchange is in state: {}".format(task.status)
             self.logger.info(msg)
             # Check if the exchange is running for more than 1 minute
             time_now = timezone.now().timestamp()
@@ -76,7 +87,7 @@ class MarketManager(object):
             self.logger.critical(msg)
         elif task.status == "SUCCESS":
             success = True
-            msg = "Exchange run for {} successfull".format(status.exchange)
+            msg = "Exchange run successfull".format(status.exchange)
             self.logger.info(msg)
         status.last_run_status = task.result
         if success:

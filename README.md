@@ -1,8 +1,8 @@
-# MarketManager - a django application for harvesting Crypto Exchange data(Bittrex, Binance, Coinbase, etc)
+# MarketManager - application for harvesting Crypto Exchange data(Bittrex, Binance, Coinbase, etc)
 [![pipeline status](https://gitlab.com/cryptohunters/marketmanager/badges/master/pipeline.svg)](https://gitlab.com/cryptohunters/marketmanager/commits/master)  
-The market manager app has 3 different aspects to its workings - the REST API, the daemon and Celery(the task executor).
+The market manager app has 3 different aspects to its workings - the REST API, the daemon and Celery(the task executor) like the CoinManager.
 
-# Installation  
+# Local installationInstallation  
 1. Install python3 and pip(Ubuntu examples):
 ```apt-get install python3```
 ```apt-get install python3-pip```
@@ -28,7 +28,8 @@ Examples:
 3. Celery task executor is started via celery:  
 ```celery  worker -A marketmanager  --loglevel=DEBUG``` - debug worker with 1 process.  
 ```celery multi start worker1 worker2 -A marketmanager``` - daemon workers.  
-
+You can use all of these in docker :  
+```docker run --name marketmanager -it registry.gitlab.com/cryptohunters/marketmanager:latest $COMMAND```  
 
 
 ## Our setup:
@@ -41,11 +42,11 @@ With this setup we achieve great speed in writing/fetching data from the DB due 
 
 # API endpoints and data models:
 ## API endpoints
-1. http://$MANAGER_IP/api/exchanges/ - list/create exchanges. Allowed operations are POST/GET.  
-2. http://$MANAGER_IP/api/exchanges/$ID/ - details/deletion/update of an exchange. Allowed operations are GET/PATCH/DELETE  
-3. http://$MANAGER_IP/api/exchanges/$ID/run/ - allowed operations are POST.  
-4. http://$MANAGER_IP/api/status/ - get the status of the daemon
-5. http://$MANAGER_IP/api/markets/ - list of markets in a exchange.  
+1. /exchanges/ - list/create exchanges. Allowed operations are POST/GET.  
+2. /exchanges/$ID/ - details/deletion/update of an exchange. Allowed operations are GET/PATCH/DELETE  
+3. /exchanges/$ID/run/ - allowed operations are POST.  
+4. /status/ - get the status of the daemon
+5. /markets/ - list of markets in a exchange.  
 
 ## Exchange - the main exchange fields:
 **Name** - the name of the exchange. Required  
@@ -99,5 +100,3 @@ Dev config in marketmanager/config_dev.py. Staging config in marketmanager/confi
 
 ## Exchange:
 The main "actor" is an exchange - it must be present in the ccxt python3 library. Each exchange has methods for fetching data from the respective exchanges (checkout the github page of the lib:https://github.com/ccxt/ccxt/tree/master/python)
-
-
