@@ -64,8 +64,9 @@ class TestUpdater(unittest.TestCase):
 
     def testUpdateExchange(self):
         """Test the updateExchange method."""
-        self.updater.updateExchange(self.exchange)
-        self.assertTrue(self.exchange.last_updated)
+        self.updater.updateExchange()
+        exchange = Exchange.objects.get(name="Test")
+        self.assertTrue(exchange.last_updated)
 
     # Mock testing
     @patch("marketmanager.updater.ExchangeUpdater.getBasePrices")
@@ -86,18 +87,20 @@ class TestUpdater(unittest.TestCase):
     def testSummarizeData(self, mock_result):
         data_map = {"ICX": 6, "BNB": 10}
         mock_result.return_value = data_map
-        self.updater.summarizeData(self.exchange)
+        self.updater.summarizeData()
         quote = self.data["ICX-BNB"]["base"]
         exchange_volume = self.data["ICX-BNB"]["volume"] * data_map[quote]
-        self.assertEqual(self.exchange.volume, exchange_volume)
-        self.assertEqual(self.exchange.top_pair, "ICX-BNB")
+        exchange = Exchange.objects.get(name="Test")
+        self.assertEqual(exchange.volume, exchange_volume)
+        self.assertEqual(exchange.top_pair, "ICX-BNB")
 
     @patch("marketmanager.updater.ExchangeUpdater.getBasePrices")
     def testSummarizeData_NoBasePrices(self, mock_result):
         mock_result.return_value = {}
-        self.updater.summarizeData(self.exchange)
-        self.assertEqual(self.exchange.volume, 0)
-        self.assertEqual(self.exchange.top_pair, "ICX-BNB")
+        self.updater.summarizeData()
+        exchange = Exchange.objects.get(name="Test")
+        self.assertEqual(exchange.volume, 0)
+        self.assertEqual(exchange.top_pair, "ICX-BNB")
 
     @patch("marketmanager.updater.requests.get")
     def testGetBasePrices_WithCurrencies(self, mock_result):

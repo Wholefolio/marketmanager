@@ -10,27 +10,36 @@ from api.models import Exchange
 from api import utils
 
 
-@app.task
-def fetch_exchange_data(exchange_id):
+@app.task(bind=True)
+def fetch_exchange_data(self, exchange_id):
     """Task to fetch and update exchange data via ccxt."""
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger("marketmanager-celery")
+    extra = {"task_id": self.request.id, "exchange": None}
+    logger = logging.LoggerAdapter(logger, extra)
     try:
         exchange = Exchange.objects.get(id=exchange_id)
         logger.info("Got exchange {}".format(exchange))
+        extra['exchange'] = exchange
+        logger = logging.LoggerAdapter(logger, extra)
     except OperationalError as e:
         msg = "DB operational error. Error: {}".format(e)
         logger.error(msg)
         return msg
     if exchange.name.lower() not in ccxt.exchanges:
-        return "Exchange doesn't exist"
+        msg = "Exchange doesn't exist"
+        logger.error(msg)
+        return
     # Init the exchange from the ccxt module
     ccxt_exchange = getattr(ccxt, exchange.name.lower())()
     # Get the data
+    logger.info("Fetching tickers.")
     data = utils.fetch_tickers(ccxt_exchange)
     # Parse the data
+    logger.info("Parsing the data.")
     update_data = utils.parse_market_data(data, exchange_id)
     # Create/update the data
-    updater = ExchangeUpdater(exchange_id, update_data)
+    logger.info("Starting updater.")
+    updater = ExchangeUpdater(exchange_id, update_data, self.request.id)
     return updater.run()
 
 

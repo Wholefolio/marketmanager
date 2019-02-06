@@ -129,6 +129,9 @@ JSON_FORMAT = '{"timestamp":"%(asctime)s","module":"%(module)s"'
 JSON_FORMAT += ',"function":"%(funcName)s","severity":"%(levelname)s"'
 JSON_FORMAT += ',"message":"%(message)s"}'
 
+JSON_FORMAT_CELERY = JSON_FORMAT[:-1] + ',"task_id":"%(task_id)s",'
+JSON_FORMAT_CELERY += '"exchange":"%(exchange)s"}'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -142,6 +145,9 @@ LOGGING = {
         'stdout-formater': {
             'format': JSON_FORMAT
         },
+        'stdout-formater-celery': {
+            'format': JSON_FORMAT_CELERY
+        },
         # Formatter for requests
         'django.server': {
            'format': '{"timestamp":"%(server_time)s","message":%(message)s"}',
@@ -152,6 +158,12 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "level": "DEBUG",
             'formatter': 'stdout-formater',
+            "stream": "ext://sys.stdout"
+        },
+        'stdout-handler-celery': {
+            "class": "logging.StreamHandler",
+            "level": "DEBUG",
+            'formatter': 'stdout-formater-celery',
             "stream": "ext://sys.stdout"
         },
         'django.server': {
@@ -166,6 +178,11 @@ LOGGING = {
             'handlers': ['stdout-handler'],
             'level': LOG_LEVEL,
             'propagate': True,
+        },
+        'marketmanager-celery': {
+            'handlers': ['stdout-handler-celery'],
+            'level': LOG_LEVEL,
+            'propogate': False
         },
         'django.server': {
             'handlers': ['django.server'],

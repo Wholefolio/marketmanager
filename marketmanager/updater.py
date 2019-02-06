@@ -9,10 +9,13 @@ from api.models import Exchange, Market
 
 class ExchangeUpdater:
     """Update an exchanges market data"""
-    def __init__(self, exchange_id, data):
+    def __init__(self, exchange_id, data, task_id=None):
         self.exchange_id = exchange_id
+        self.exchange = Exchange.objects.get(id=self.exchange_id)
         self.market_data = data
-        self.logger = logging.getLogger(__name__)
+        extra = {"task_id": task_id, "exchange": self.exchange}
+        self.logger = logging.getLogger("marketmanager-celery")
+        self.logger = logging.LoggerAdapter(self.logger, extra)
 
     def createCurrencyMap(self, data):
         """Create a map from the currency data - name: price."""
@@ -45,7 +48,7 @@ class ExchangeUpdater:
         response = requests.get(url)
         elapsed = response.elapsed.microseconds/1000
         msg = "Currencies fetch elapsed: {} ms".format(elapsed)
-        self.logger.debug(msg)
+        self.logger.info(msg)
         if response.status_code != 200:
             msg = "Couldn't fetch current currency data from CoinManager."
             self.logger.error(msg)
@@ -60,7 +63,7 @@ class ExchangeUpdater:
         return data_map
 
     def updateExistingMarkets(self, current_data):
-        """Update existing exchange data."""
+        """Update existing markets data."""
         for market in current_data:
             # Check if the name is in the market data - if yes update it
             if market.name in self.market_data:
@@ -80,14 +83,13 @@ class ExchangeUpdater:
     @transaction.atomic
     def run(self):
         """Main run method - create/update the market data passed in."""
-        exchange = Exchange.objects.get(id=self.exchange_id)
         current_time = timezone.now().timestamp()
-        self.logger.info("Starting update for {}!".format(exchange.name))
+        self.logger.info("Starting update!")
         # Fetch the old data by filtering on source id
         self.logger.info("Fetching old data...")
         current_data = Market.objects.select_for_update().filter(
-                                                        exchange=exchange)
-        self.summarizeData(exchange)
+                                                        exchange=self.exchange)
+        self.summarizeData()
         if not current_data:
             self.createMarkets()
         else:
@@ -97,10 +99,10 @@ class ExchangeUpdater:
             self.updateExistingMarkets(current_data)
         time_delta = timezone.now().timestamp() - current_time
         self.logger.info("Update finished in: {} seconds".format(time_delta))
-        self.updateExchange(exchange)
-        return "Data update successful for exchange: {}".format(exchange)
+        self.updateExchange()
+        return "Updater finished successfully"
 
-    def summarizeData(self, exchange):
+    def summarizeData(self):
         """Create a summary of the market data we have for the exchange."""
         # Get the current prices
         currency_prices = self.getBasePrices()
@@ -114,16 +116,16 @@ class ExchangeUpdater:
                 top_pair = name
                 top_pair_volume = volume_usd
             exchange_volume += volume_usd
-        exchange.volume = exchange_volume
-        exchange.top_pair = top_pair
-        exchange.top_pair_volume = top_pair_volume
-        exchange.save()
+        self.exchange.volume = exchange_volume
+        self.exchange.top_pair = top_pair
+        self.exchange.top_pair_volume = top_pair_volume
+        self.exchange.save()
         self.logger.info("Exchange volume and top pairs saved successfully!")
 
-    def updateExchange(self, exchange):
+    def updateExchange(self):
         """Patch the exchange last updated timestamp."""
-        self.logger.info("Updating Exchange {}.".format(exchange.name))
+        self.logger.info("Updating exchange summary")
         timestamp = "{}".format(timezone.now())
-        exchange.last_updated = timestamp
-        exchange.save()
+        self.exchange.last_updated = timestamp
+        self.exchange.save()
         self.logger.info("Exchange update finished successfully!")

@@ -13,7 +13,7 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 DATABASES = get_db_details_postgres()
 
-COIN_MANAGER_URL = "http://localhost:8000/api/"
+COIN_MANAGER_URL = "http://localhost:8000/"
 
 BROKER_URL = "amqp://guest:guest@rabbitmq:5672//"
 
