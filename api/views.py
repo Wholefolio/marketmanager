@@ -51,10 +51,14 @@ class DaemonStatus(ViewSet):
 
 
 class ExchangeRun(ViewSet):
-    def create(self, request, pk):
+    def create(self, request):
         host = request.META['HTTP_HOST']
         path = reverse("api:task_results-list")
-        task_id = fetch_exchange_data.delay(pk)
+        exchange_id = request.data.get("exchange_id")
+        if not exchange_id:
+            msg = {"error": "Missing exchange id"}
+            return Response(msg, status=status.HTTP_400_BAD_REQUEST)
+        task_id = fetch_exchange_data.delay(exchange_id)
         if task_id:
             output = "MarketManager has accepted exchange run. "
             output += "Task: http://{}{}?task_id={}".format(host, path,
@@ -62,7 +66,7 @@ class ExchangeRun(ViewSet):
             return Response(output, status=status.HTTP_200_OK)
         else:
             msg = {"error":
-                   "No task created in celery for exchange id: {}".format(pk)}
+                   "No task created for exchange id: {}".format(exchange_id)}
             return Response(msg, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
