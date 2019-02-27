@@ -1,4 +1,4 @@
-FROM gcr.io/production-185413/base-images/marketmanager:latest
+FROM gcr.io/positive-apex-225210/base-images/marketmanager:latest
 
 # Copy source
 COPY . /marketmanager/

@@ -8,7 +8,7 @@ services:
   - postgres:latest
 
 variables:
-  REGISTRY: "gcr.io/production-185413/marketmanager"
+  REGISTRY: "gcr.io/positive-apex-225210/marketmanager"
   POSTGRES_DB: marketmanager
   POSTGRES_USER: runner
   POSTGRES_PASSWORD: ""
@@ -16,8 +16,8 @@ variables:
   DB_USERNAME: runner
   DB_PASSWORD: ""
   DB_HOSTNAME: postgres
-  STAGING_HOSTNAME: 35.225.253.18
-  GCP_CONTEXT: gke_production-185413_us-central1-a_main
+  STAGING_HOSTNAME: 35.240.84.184
+  GCP_CONTEXT: gke_positive-apex-225210_europe-west1-c_main
   SECRET_KEY: "testing_key"
   PY_ENV: staging
   MARKET_MANAGER_DAEMON_HOST: localhost
