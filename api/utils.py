@@ -12,6 +12,11 @@ def fetch_tickers(ccxt_exchange):
                     data[symbol] = ccxt_exchange.fetchTicker(symbol)
                 except errors.ExchangeError:
                     pass
+        elif ccxt_exchange.has.get("fetchMarkets"):
+            markets = ccxt_exchange.fetchMarkets()
+            for market in markets:
+                name = market["symbol"]
+                data[name] = ccxt_exchange.fetchTicker(name)
         else:
             return "No symbols in exchange {}".format(ccxt_exchange.name)
     else:
@@ -22,6 +27,7 @@ def fetch_tickers(ccxt_exchange):
 def parse_market_data(data, exchange_id):
     """Build meaningful objects from the exchange data"""
     update_data = {}
+
     for symbol, values in data.items():
         if values['symbol']:
             base, quote = values['symbol'].split("/")

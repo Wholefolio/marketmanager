@@ -12,9 +12,9 @@ from socket import timeout as SOCKET_TIMEOUT
 from django_celery_results.models import TaskResult
 
 from api.tasks import fetch_exchange_data
-
-# Set the django settings env variable and load django
 from api.models import Exchange, ExchangeStatus
+from marketmanager.celery import app
+
 
 
 class MarketManager(object):
@@ -33,6 +33,16 @@ class MarketManager(object):
         self.lock_file = config["lock_file"]
         self.worker_limit = int(config["threads"])
         self.logger = logging.getLogger("marketmanager")
+
+    def checkCeleryStatus(self):
+        """Check the status of celery."""
+        # Run the check 3 times in case of failure
+        for i in range(1, 3):
+            result = app.control.inspect().stats()
+            if result:
+                self.logger.info("Got celery stats: {}".format(result))
+                return result
+            self.logger.error("Couldn't get celery stats on {} try".format(i))
 
     def checkTaskResult(self, status):
         """Check the status of an running exchange in coiner."""
