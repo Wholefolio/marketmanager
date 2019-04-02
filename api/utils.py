@@ -3,6 +3,7 @@ from ccxt.base import errors
 
 def fetch_tickers(ccxt_exchange):
     """Try to fetch the tickers data from the CCXT exchange."""
+    data = {}
     if not ccxt_exchange.has.get('fetchTickers'):
         # Exchange doesn't support fetching all tickers
         if ccxt_exchange.symbols:

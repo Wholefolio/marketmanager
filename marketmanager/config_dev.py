@@ -20,3 +20,5 @@ BROKER_URL = "amqp://guest:guest@rabbitmq:5672//"
 # Connection to the marketmanager-daemon service
 MARKET_MANAGER_DAEMON_HOST = "localhost"
 MARKET_MANAGER_DAEMON_PORT = 5000
+
+CORS_ORIGIN_WHITELIST = ["localhost", "localhost:3000"]

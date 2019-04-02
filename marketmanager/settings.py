@@ -23,12 +23,12 @@ CELERYD_LOG_FORMAT += ',"task_id":"%(task_id)s","message":"%(message)s"}'
 BROKER_CONNECTION_TIMEOUT = 3
 # Get the configuration
 ALLOWED_HOSTS = DATABASES = SECRET_KEY = DEBUG = MARKET_MANAGER_DAEMON_HOST \
-              = STORAGE_EXCHANGE_URL = BROKER_URL \
+              = STORAGE_EXCHANGE_URL = BROKER_URL = CORS_ORIGIN_WHITELIST = \
               = MARKET_MANAGER_DAEMON_PORT = None
 
 for setting in ['ALLOWED_HOSTS', 'DATABASES', 'SECRET_KEY', "DEBUG",
                 "COIN_MANAGER_URL", "BROKER_URL", "MARKET_MANAGER_DAEMON_HOST",
-                "MARKET_MANAGER_DAEMON_PORT"]:
+                "MARKET_MANAGER_DAEMON_PORT", "CORS_ORIGIN_WHITELIST"]:
     try:
         globals()[setting] = getattr(config, setting)
     except AttributeError:
@@ -36,9 +36,6 @@ for setting in ['ALLOWED_HOSTS', 'DATABASES', 'SECRET_KEY', "DEBUG",
             "Mandatory setting {} is missing from config.".format(setting)
         )
 
-CORS_ORIGIN_WHITELIST = ["testfrontend.internal.cyanopus.com",
-                         "localhost:3000",
-                         "localhost"]
 
 CACHE_TTL = 60
 if "test" in sys.argv:
