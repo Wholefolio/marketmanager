@@ -20,4 +20,8 @@ BROKER_URL = environ.get("BROKER_URL")
 # Connection to the marketmanager-daemon service
 MARKET_MANAGER_DAEMON_HOST = environ.get("MARKET_MANAGER_DAEMON_HOST")
 MARKET_MANAGER_DAEMON_PORT = int(environ.get("MARKET_MANAGER_DAEMON_PORT"))
-CORS_ORIGIN_WHITELIST = environ.get("CORS_ORIGIN_WHITELIST").split(",")
+CORS_ORIGIN_WHITELIST = environ.get("CORS_ORIGIN_WHITELIST")
+if not CORS_ORIGIN_WHITELIST:
+    CORS_ORIGIN_WHITELIST = ["wholefolio.io"]
+else:
+    CORS_ORIGIN_WHITELIST = CORS_ORIGIN_WHITELIST.split(",")
