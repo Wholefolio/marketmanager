@@ -9,7 +9,7 @@ DEBUG = environ.get("MARKET_MANAGER_DEBUG", False)
 ALLOWED_HOSTS = ["marketmanager", "marketmanager-api", "marketmanager-daemon",
                  "api.wholefolio.io"]
 
-COIN_MANAGER_URL = environ.get("COIN_MANAGER_URL", False)
+COIN_MANAGER_URL = environ.get("COIN_MANAGER_URL", "http://coinmanager")
 
 DATABASES = get_db_details_postgres()
 
