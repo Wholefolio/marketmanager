@@ -42,6 +42,8 @@ You can use all of these in docker :
 ```python3 manage.py disable_exchanges 1 5 13 ``` or ```python3 manage.py disable_exchanges --all```
 5. Enable exchanges
 ```python3 manage.py enable_exchanges 1 5 13 ``` or ```python3 manage.py enable_exchanges --all```
+6. Gather data for an exchange (via celery or not)
+```python3 manage.py fetch_exchange_data 1```
 
 ## Our setup:
 Our setup is in GKE with a PostgreSQL DB and for the basic setup we have 4 deployments:

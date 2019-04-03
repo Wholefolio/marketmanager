@@ -31,6 +31,16 @@ unittests:
   script:
     - python3 manage.py test --noinput
 
+usability-tests:
+  stage: test
+  tags:
+    - docker
+  image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
+  script:
+    # Enable one exchange and verify the fetch_exchange_data task comples
+    - python3 manage.py add_exchange --name binance
+    - python3 manage.py fetch_exchange_data 1
+
 release-image:
     stage: release
     script:

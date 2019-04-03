@@ -7,6 +7,7 @@ from api.models import Market, Exchange
 
 CURRENCY_DATA = [{"name": "Bitcoin", "symbol": "BTC", "price": 6500},
                  {"name": "Ethereum", "symbol": "ETH", "price": 350}]
+APP_REQUEST_ERROR = {"error": "Couldn't reach app"}
 
 
 def get_json():
@@ -96,35 +97,35 @@ class TestUpdater(unittest.TestCase):
 
     @patch("marketmanager.updater.ExchangeUpdater.getBasePrices")
     def testSummarizeData_NoBasePrices(self, mock_result):
+        """There shouldn't be any summaries if there are no base results"""
         mock_result.return_value = {}
         self.updater.summarizeData()
         exchange = Exchange.objects.get(name="Test")
-        self.assertEqual(exchange.volume, 0)
-        self.assertEqual(exchange.top_pair, "ICX-BNB")
+        self.assertFalse(exchange.volume, 0)
+        self.assertFalse(exchange.top_pair)
 
-    @patch("marketmanager.updater.requests.get")
+    @patch("marketmanager.updater.appRequest")
     def testGetBasePrices_WithCurrencies(self, mock_result):
-        mock_result.return_value.status_code = 200
-        mock_result.return_value.json = get_json
+        mock_result.return_value = get_json()
         output = self.updater.getBasePrices()
         for item in CURRENCY_DATA:
             self.assertTrue(item["symbol"] in output)
 
-    @patch("marketmanager.updater.requests.get")
+    @patch("marketmanager.updater.appRequest")
     def testGetBasePrices_WithoutCurrencies_WithoutLocal(self, mock_result):
         """Test the method without an existing local fiat market."""
-        mock_result.return_value.status_code = 400
+        mock_result.return_value = APP_REQUEST_ERROR
         output = self.updater.getBasePrices()
         self.assertFalse(output)
 
-    @patch("marketmanager.updater.requests.get")
+    @patch("marketmanager.updater.appRequest")
     def testGetBasePrices_WithoutCurrencies_WithLocal(self, mock_result):
         """Test the method with an existing local fiat market."""
         data = {'base': 'USD', 'quote': 'BNB', 'last': 10, 'bid': 9, 'ask': 10,
                 'volume': 50, 'exchange_id': self.exchange.id}
         m = Market(name="BNB-USD", **data)
         m.save()
-        mock_result.return_value.status_code = 400
+        mock_result.return_value = APP_REQUEST_ERROR
         output = self.updater.getBasePrices()
         self.assertTrue(data["quote"] in output)
         self.assertEqual(data["last"], output[data['quote']])

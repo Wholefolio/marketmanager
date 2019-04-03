@@ -1,10 +1,10 @@
 import logging
-import requests
 from django.utils import timezone
 from django.db import transaction
 from django.conf import settings
 
 from api.models import Exchange, Market
+from applib.tools import appRequest
 
 
 class ExchangeUpdater:
@@ -26,8 +26,7 @@ class ExchangeUpdater:
 
     def createMarkets(self):
         """Method for creation of market data."""
-        msg = "Starting creation of markets"
-        self.logger.info(msg)
+        self.logger.info("Starting creation of markets")
         for name, data in self.market_data.items():
             market = Market(name=name, **data)
             market.save()
@@ -45,21 +44,18 @@ class ExchangeUpdater:
         """Get the price list from CoinManager or from a market with a currency
          base USD"""
         url = "{}currencies/".format(settings.COIN_MANAGER_URL)
-        response = requests.get(url)
-        elapsed = response.elapsed.microseconds/1000
-        msg = "Currencies fetch elapsed: {} ms".format(elapsed)
-        self.logger.info(msg)
-        if response.status_code != 200:
-            msg = "Couldn't fetch current currency data from CoinManager."
+        response = appRequest("get", url)
+        if "error" in response:
+            msg = "Error during CoinManager request: %s" % response['error']
             self.logger.error(msg)
             return self.getLocalFiatPrices()
-        if response.json()["count"] == 0:
+        if response["count"] == 0:
             # There are no entries - make a effort to get some from our local
             # markets with base USD
             msg = "There are no currencies in CoinManager!"
-            self.logger.error(msg)
+            self.logger.warning(msg)
             return self.getLocalFiatPrices()
-        data_map = self.createCurrencyMap(response.json()['results'])
+        data_map = self.createCurrencyMap(response['results'])
         return data_map
 
     def updateExistingMarkets(self, current_data):
@@ -106,6 +102,10 @@ class ExchangeUpdater:
         """Create a summary of the market data we have for the exchange."""
         # Get the current prices
         currency_prices = self.getBasePrices()
+        if not currency_prices:
+            msg = "Can't summarize exchange data due to no currency prices"
+            self.logger.error(msg)
+            return
         exchange_volume = 0
         top_pair_volume = 0
         top_pair = ""
