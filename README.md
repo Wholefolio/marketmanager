@@ -2,7 +2,7 @@
 [![pipeline status](https://gitlab.com/cryptohunters/marketmanager/badges/master/pipeline.svg)](https://gitlab.com/cryptohunters/marketmanager/commits/master)  
 The market manager app has 3 different aspects to its workings - the REST API, the daemon and Celery(the task executor) like the CoinManager.
 
-# Local installationInstallation  
+# Local installation  
 1. Install python3 and pip(Ubuntu examples):
 ```apt-get install python3```
 ```apt-get install python3-pip```
@@ -31,6 +31,17 @@ Examples:
 You can use all of these in docker :  
 ```docker run --name marketmanager -it registry.gitlab.com/cryptohunters/marketmanager:latest $COMMAND```  
 
+# Exchange management:
+1. Get the list of added(available) exchanges:
+```python3 manage.py get_exchanges [--available]```
+2. Add an exchange from the list of available exchanges:
+```python3 manage.py add_exchange --name coinbase```
+3. Add all exchanges from the available list
+```python3 manage.py add_exchange --all```
+4. Disable exchanges
+```python3 manage.py disable_exchanges 1 5 13 ``` or ```python3 manage.py disable_exchanges --all```
+5. Enable exchanges
+```python3 manage.py enable_exchanges 1 5 13 ``` or ```python3 manage.py enable_exchanges --all```
 
 ## Our setup:
 Our setup is in GKE with a PostgreSQL DB and for the basic setup we have 4 deployments:
