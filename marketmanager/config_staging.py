@@ -5,7 +5,7 @@ from applib.tools import get_db_details_postgres
 ENV_VARS = ["SECRET_KEY", "DEBUG", "POD_IP", "COIN_MANAGER_URL",
             "MARKET_MANAGER_DAEMON_HOST", "MARKET_MANAGER_DAEMON_PORT",
             "CORS_ORIGIN_WHITELIST", "REDIS_HOST"]
-
+CORS_ORIGIN_WHITELIST = None
 for var in ENV_VARS:
     value = environ.get(var, False)
     if value:
@@ -19,3 +19,5 @@ ALLOWED_HOSTS = ["marketmanager", "marketmanager-api", "marketmanager-daemon",
                  "api.wholefolio.io"]
 
 DATABASES = get_db_details_postgres()
+
+CORS_ORIGIN_WHITELIST = CORS_ORIGIN_WHITELIST.split(",")
