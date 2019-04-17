@@ -44,9 +44,9 @@ class MarketManager(object):
 
     def checkTaskResult(self, status):
         """Check the status of a running exchange in celery."""
-        self.logger.info("Running poller check on {}".format(status.adapter))
+        self.logger.info("Running poller check on {}".format(status.exchange))
         if not status.time_started:
-            msg = "Exchange {} is without start time!".format(status.adapter)
+            msg = "Exchange {} is without start time!".format(status.exchange)
             self.logger.error(msg)
             status.running = False
             status.save()
@@ -60,7 +60,7 @@ class MarketManager(object):
             self.logger.info(msg)
             return
         run_id = status.last_run_id
-        msg = "Timeout reached for {}.Revoking task: {}".format(status.adapter,
+        msg = "Timeout reached for {}.Revoking task: {}".format(status.exchange,
                                                                 run_id)
         self.logger.error(msg)
         app.control.revoke(run_id, terminate=True, timeout=3)

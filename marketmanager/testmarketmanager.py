@@ -177,8 +177,7 @@ class TestMarketManager(unittest.TestCase):
         self.status.last_run_id = get_json()["id"]
         self.status.time_started = timezone.now()
         self.status.running = True
-        resp = self.manager.checkTaskResult(self.status)
-        self.assertTrue(isinstance(resp, str))
+        self.manager.checkTaskResult(self.status)
         self.assertTrue(self.status.running)
 
     def testCheckTaskResult_WithTimeStartedLong(self):
@@ -188,7 +187,6 @@ class TestMarketManager(unittest.TestCase):
         self.status.running = True
         self.status.time_started = timezone.make_aware(time)
         resp = self.manager.checkTaskResult(self.status)
-        self.assertTrue("error" in resp)
         self.assertFalse(self.status.running)
 
     def testCheckTaskResult_Success(self):
@@ -200,7 +198,6 @@ class TestMarketManager(unittest.TestCase):
         self.task.save()
         self.status.time_started = timezone.make_aware(time)
         self.manager.checkTaskResult(self.status)
-        self.assertTrue(self.status.last_run)
         self.assertFalse(self.status.running)
 
     def testCheckTaskResult_Failure(self):
