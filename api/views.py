@@ -37,7 +37,7 @@ class DaemonStatus(ViewSet):
         """Get the status of marketmanager daemon."""
         try:
             connection = (settings.MARKET_MANAGER_DAEMON_HOST,
-                          settings.MARKET_MANAGER_DAEMON_PORT)
+                          int(settings.MARKET_MANAGER_DAEMON_PORT))
             client = Client(connection)
             client.connect()
             output = client.getStatus(get_request_id('status'))
