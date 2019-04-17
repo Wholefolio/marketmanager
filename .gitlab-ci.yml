@@ -26,6 +26,7 @@ variables:
   POD_IP: localhost
   REDIS_HOST: localhost
   DEBUG: "True"
+  CORS_ORIGIN_WHITELIST: "localhost"
 
 unittests:
   stage: test
