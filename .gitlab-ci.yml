@@ -22,6 +22,9 @@ variables:
   PY_ENV: staging
   MARKET_MANAGER_DAEMON_HOST: localhost
   MARKET_MANAGER_DAEMON_PORT: 5000
+  POD_IP: localhost
+  REDIS_HOST: localhost
+  DEBUG: "True"
 
 unittests:
   stage: test

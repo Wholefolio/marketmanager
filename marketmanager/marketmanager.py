@@ -9,12 +9,10 @@ from time import sleep
 from concurrent.futures import ThreadPoolExecutor
 from socket import (socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR)
 from socket import timeout as SOCKET_TIMEOUT
-from django_celery_results.models import TaskResult
 
 from api.tasks import fetch_exchange_data
 from api.models import Exchange, ExchangeStatus
 from marketmanager.celery import app
-
 
 
 class MarketManager(object):
