@@ -23,11 +23,11 @@ CELERYD_LOG_FORMAT += ',"task_id":"%(task_id)s","message":"%(message)s"}'
 BROKER_CONNECTION_TIMEOUT = 3
 # Get the configuration
 ALLOWED_HOSTS = DATABASES = SECRET_KEY = DEBUG = MARKET_MANAGER_DAEMON_HOST \
-              = STORAGE_EXCHANGE_URL = BROKER_URL = CORS_ORIGIN_WHITELIST \
+              = STORAGE_EXCHANGE_URL = CORS_ORIGIN_WHITELIST = REDIS_HOST \
               = MARKET_MANAGER_DAEMON_PORT = None
 
 for setting in ['ALLOWED_HOSTS', 'DATABASES', 'SECRET_KEY', "DEBUG",
-                "COIN_MANAGER_URL", "BROKER_URL", "MARKET_MANAGER_DAEMON_HOST",
+                "COIN_MANAGER_URL", "REDIS_HOST", "MARKET_MANAGER_DAEMON_HOST",
                 "MARKET_MANAGER_DAEMON_PORT", "CORS_ORIGIN_WHITELIST"]:
     try:
         globals()[setting] = getattr(config, setting)
@@ -35,13 +35,23 @@ for setting in ['ALLOWED_HOSTS', 'DATABASES', 'SECRET_KEY', "DEBUG",
         raise ImproperlyConfigured(
             "Mandatory setting {} is missing from config.".format(setting)
         )
-
-
+BROKER_URL = "redis://{}/0".format(REDIS_HOST)
+print(BROKER_URL)
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://{}/1".format(REDIS_HOST),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
+        },
+        "KEY_PREFIX": "marketmanager"
+    }
+}
 CACHE_TTL = 60
 if "test" in sys.argv:
     # Don't cache while testing
-    pass
-CACHE_TTL = 0
+    CACHE_TTL = 0
 
 LOG_LEVEL = "INFO"
 if DEBUG:
