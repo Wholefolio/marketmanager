@@ -36,7 +36,6 @@ for setting in ['ALLOWED_HOSTS', 'DATABASES', 'SECRET_KEY', "DEBUG",
             "Mandatory setting {} is missing from config.".format(setting)
         )
 BROKER_URL = "redis://{}/0".format(REDIS_HOST)
-print(BROKER_URL)
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -57,7 +56,7 @@ LOG_LEVEL = "INFO"
 if DEBUG:
     LOG_LEVEL = "DEBUG"
 
-
+EXCHANGE_TIMEOUT = 120
 # Daemon config
 MARKET_MANAGER_DAEMON = {
     "threads": 2,

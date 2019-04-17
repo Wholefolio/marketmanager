@@ -3,10 +3,11 @@ import logging
 from django.db.utils import OperationalError
 from django_celery_results.models import TaskResult
 from django.db import transaction
+from django.utils import timezone
 
 from marketmanager.updater import ExchangeUpdater
 from marketmanager.celery import app
-from api.models import Exchange
+from api.models import Exchange, ExchangeStatus
 from api import utils
 
 
@@ -40,7 +41,13 @@ def fetch_exchange_data(self, exchange_id):
     # Create/update the data
     logger.info("Starting updater.")
     updater = ExchangeUpdater(exchange_id, update_data, self.request.id)
-    return updater.run()
+    result = updater.run()
+    logger.info("Finished updater, updating ExchangeStatus.")
+    status = ExchangeStatus.objects.get(exchange=exchange)
+    status.running = False
+    status.last_run = timezone.now()
+    status.save()
+    return result
 
 
 @app.task

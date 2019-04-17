@@ -1,5 +1,6 @@
 """API models."""
 from django.db import models
+from django.conf import settings
 
 
 class Exchange(models.Model):
@@ -60,6 +61,8 @@ class ExchangeStatus(models.Model):
     last_run_status = models.TextField(null=True)
     time_started = models.DateTimeField(null=True)
     running = models.BooleanField(blank=True, default=False)
+    timeout = models.IntegerField(blank=True,
+                                  default=settings.EXCHANGE_TIMEOUT)
 
     def __str__(self):
         """Return a human readable representation of the model instance."""

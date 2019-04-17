@@ -45,67 +45,30 @@ class MarketManager(object):
             self.logger.error("Couldn't get celery stats on {} try".format(i))
 
     def checkTaskResult(self, status):
-        """Check the status of an running exchange in coiner."""
-        self.logger.info("Running poller check on {}".format(status.exchange))
-        run_id = status.last_run_id
-        try:
-            task = TaskResult.objects.get(task_id=run_id)
-            self.logger.debug("Got task result for {}".format(status.exchange))
-        except TaskResult.DoesNotExist:
-            msg = {"error":
-                   "Task result doesn't exist for {}!".format(status.exchange)}
+        """Check the status of a running exchange in celery."""
+        self.logger.info("Running poller check on {}".format(status.adapter))
+        if not status.time_started:
+            msg = "Exchange {} is without start time!".format(status.adapter)
             self.logger.error(msg)
-            time_now = timezone.now().timestamp()
-            # Check if there is no task  for more than 15 seconds
-            if status.time_started.timestamp() + 15:
-                msg = "Task result didn't appear for more than 30s!"
-                self.logger.error(msg)
-                if not self.checkCeleryStatus():
-                    # Celery is probably dead or overloaded - leave the task in
-                    # current state
-                    msg = "Celery worker is not responding!"
-                    self.logger.error(msg)
-                    return msg
             status.running = False
             status.save()
-            return msg
-        except django.db.utils.OperationalError as e:
-            msg = "DB operational error. Error: {}".format(e)
-            self.logger.error(msg)
-        success = False
-        if task.status != "FAILURE" and task.status != "SUCCESS":
-            # Exchange is still in pending or running
-            msg = "Exchange is in state: {}".format(task.status)
+            return
+        time_now = timezone.now().timestamp()
+        time_started = status.time_started.timestamp()
+        timeout = status.timeout
+        if time_now <= time_started + timeout:
+            # Still haven't reached the timeout
+            msg = "Exchange {} is within timeout!".format(status.exchange)
             self.logger.info(msg)
-            # Check if the exchange is running for more than 1 minute
-            time_now = timezone.now().timestamp()
-            start_time = status.time_started.timestamp()
-            if start_time + 60 < time_now:
-                status.running = False
-                status.last_run_status = "STUCK"
-                msg = {'error': None}
-                msg["error"] = "Exchange has been running more than 60 seconds"
-                msg["error"] += ".Moving to not running."
-                self.logger.error(msg)
-                msg = {'error': msg}
-            else:
-                status.last_run_status = msg
-            status.save()
-            return msg
-        elif task.status == "FAILURE":
-            msg = "Exchange run for {} failed!".format(status.exchange)
-            self.logger.critical(msg)
-        elif task.status == "SUCCESS":
-            success = True
-            msg = "Exchange run successfull".format(status.exchange)
-            self.logger.info(msg)
-        status.last_run_status = task.result
-        if success:
-            # Only update the last run if it's sucessful
-            status.last_run = timezone.now()
+            return
+        run_id = status.last_run_id
+        msg = "Timeout reached for {}.Revoking task: {}".format(status.adapter,
+                                                                run_id)
+        self.logger.error(msg)
+        app.control.revoke(run_id, terminate=True, timeout=3)
         status.running = False
+        status.last_run_status = "Timeout reached"
         status.save()
-        return msg
 
     def checkExchange(self, exchange, status):
         """Check if the exchange data is meant to be fetched."""
