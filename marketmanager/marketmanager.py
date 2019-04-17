@@ -60,8 +60,8 @@ class MarketManager(object):
             self.logger.info(msg)
             return
         run_id = status.last_run_id
-        msg = "Timeout reached for {}.Revoking task: {}".format(status.exchange,
-                                                                run_id)
+        msg = "Timeout reached for {}.Revoking task {}".format(status.exchange,
+                                                               run_id)
         self.logger.error(msg)
         app.control.revoke(run_id, terminate=True, timeout=3)
         status.running = False

@@ -4,6 +4,7 @@ import os
 import time
 import pickle
 import multiprocessing as mp
+from unittest.mock import patch
 from socket import socket, AF_INET, SOCK_STREAM
 from django.db.models.query import QuerySet
 from django.utils import timezone
@@ -180,27 +181,20 @@ class TestMarketManager(unittest.TestCase):
         self.manager.checkTaskResult(self.status)
         self.assertTrue(self.status.running)
 
-    def testCheckTaskResult_WithTimeStartedLong(self):
+    @patch("marketmanager.marketmanager.app.control.revoke")
+    def testCheckTaskResult_WithTimeStartedLong(self, mock_item):
+        mock_item.return_value = True
         timestamp = timezone.now().timestamp() - 1500
         time = datetime.fromtimestamp(timestamp)
         self.status.last_run_id = get_json()["id"]
         self.status.running = True
-        self.status.time_started = timezone.make_aware(time)
-        resp = self.manager.checkTaskResult(self.status)
-        self.assertFalse(self.status.running)
-
-    def testCheckTaskResult_Success(self):
-        timestamp = timezone.now().timestamp() - 1500
-        time = datetime.fromtimestamp(timestamp)
-        self.status.last_run_id = get_json()["id"]
-        self.status.running = True
-        self.task.status = "SUCCESS"
-        self.task.save()
         self.status.time_started = timezone.make_aware(time)
         self.manager.checkTaskResult(self.status)
         self.assertFalse(self.status.running)
 
-    def testCheckTaskResult_Failure(self):
+    @patch("marketmanager.marketmanager.app.control.revoke")
+    def testCheckTaskResult_Failure(self, mock_item):
+        mock_item.return_value = True
         timestamp = timezone.now().timestamp() - 1500
         time = datetime.fromtimestamp(timestamp)
         self.status.last_run_id = get_json()["id"]

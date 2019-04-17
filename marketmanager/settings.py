@@ -51,6 +51,7 @@ CACHE_TTL = 60
 if "test" in sys.argv:
     # Don't cache while testing
     CACHE_TTL = 0
+    del CACHES
 
 LOG_LEVEL = "INFO"
 if DEBUG:
