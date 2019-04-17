@@ -4,7 +4,7 @@ from applib.tools import get_db_details_postgres
 
 ENV_VARS = ["SECRET_KEY", "DEBUG", "POD_IP", "COINMANAGER_URL",
             "MARKET_MANAGER_DAEMON_HOST", "MARKET_MANAGER_DAEMON_PORT",
-            "CORS_ORIGIN_WHITELIST", "REDIS_HOST", "BROKER_URL"]
+            "CORS_ORIGIN_WHITELIST", "REDIS_HOST"]
 
 for var in ENV_VARS:
     value = environ.get(var, False)
