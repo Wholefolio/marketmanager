@@ -21,6 +21,8 @@ CELERYD_LOG_FORMAT = '{"timestamp":"%(asctime)s","severity":"%(levelname)s",'
 CELERYD_LOG_FORMAT += '"worker":"%(processName)s","task":"%(task_name)s",'
 CELERYD_LOG_FORMAT += ',"task_id":"%(task_id)s","message":"%(message)s"}'
 BROKER_CONNECTION_TIMEOUT = 3
+BROKER_CONNECTION_MAX_RETRIES = 5
+BROKER_POOL_LIMIT = None
 # Get the configuration
 ALLOWED_HOSTS = DATABASES = SECRET_KEY = DEBUG = MARKET_MANAGER_DAEMON_HOST \
               = STORAGE_EXCHANGE_URL = CORS_ORIGIN_WHITELIST = REDIS_HOST \
