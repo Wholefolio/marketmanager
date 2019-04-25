@@ -57,6 +57,7 @@ if "test" in sys.argv:
     # Don't cache while testing
     CACHE_TTL = 0
     del CACHES
+    SECURE_SSL_REDIRECT = False
 
 LOG_LEVEL = "INFO"
 if DEBUG:
