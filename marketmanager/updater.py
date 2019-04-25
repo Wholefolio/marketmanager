@@ -43,7 +43,7 @@ class ExchangeUpdater:
     def getBasePrices(self):
         """Get the price list from CoinManager or from a market with a currency
          base USD"""
-        url = "{}currencies/".format(settings.COIN_MANAGER_URL)
+        url = "{}/internal/currencies/".format(settings.COIN_MANAGER_URL)
         response = appRequest("get", url)
         if "error" in response:
             msg = "Error during CoinManager request: %s" % response['error']
