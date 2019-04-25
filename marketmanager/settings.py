@@ -30,13 +30,16 @@ ALLOWED_HOSTS = DATABASES = SECRET_KEY = DEBUG = MARKET_MANAGER_DAEMON_HOST \
 
 for setting in ['ALLOWED_HOSTS', 'DATABASES', 'SECRET_KEY', "DEBUG",
                 "COIN_MANAGER_URL", "REDIS_HOST", "MARKET_MANAGER_DAEMON_HOST",
-                "MARKET_MANAGER_DAEMON_PORT", "CORS_ORIGIN_WHITELIST"]:
+                "MARKET_MANAGER_DAEMON_PORT", "CORS_ORIGIN_WHITELIST",
+                "SECURE_SSL_REDIRECT"]:
     try:
         globals()[setting] = getattr(config, setting)
     except AttributeError:
         raise ImproperlyConfigured(
             "Mandatory setting {} is missing from config.".format(setting)
         )
+SECURE_REDIRECT_EXEMPT = ["healthz", "daemon_status", "task_results",
+                          "daemon_status", "exchange_statuses"]
 BROKER_URL = "redis://{}/0".format(REDIS_HOST)
 CACHES = {
     "default": {

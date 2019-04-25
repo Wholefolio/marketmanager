@@ -2,7 +2,7 @@ from os import environ
 from django.core.exceptions import ImproperlyConfigured
 from applib.tools import get_db_details_postgres
 
-ENV_VARS = ["SECRET_KEY", "COIN_MANAGER_URL",
+ENV_VARS = ["SECRET_KEY", "COIN_MANAGER_URL", "SECURE_SSL_REDIRECT",
             "MARKET_MANAGER_DAEMON_HOST", "MARKET_MANAGER_DAEMON_PORT",
             "CORS_ORIGIN_WHITELIST", "REDIS_HOST"]
 CORS_ORIGIN_WHITELIST = None

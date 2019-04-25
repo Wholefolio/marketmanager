@@ -4,7 +4,7 @@ from applib.tools import get_db_details_postgres
 SECRET_KEY = "5F2b(#0Znpt1H83&RLoIAUBDrQydu6M+i!TE_*zeOjsVC-W@fG"
 
 DEBUG = True
-
+SECURE_SSL_REDIRECT = True
 # Specify the allowed hosts for the app
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
