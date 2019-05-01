@@ -128,4 +128,4 @@ class ExchangeUpdater:
         timestamp = "{}".format(timezone.now())
         self.exchange.last_updated = timestamp
         self.exchange.save()
-        self.logger.info("Exchange update finished successfully!")
+        self.logger.info("Exchange summary update finished successfully!")

@@ -1,6 +1,6 @@
 from os import environ
 from django.core.exceptions import ImproperlyConfigured
-from applib.tools import get_db_details_postgres
+from applib.tools import get_db_details_postgres, bool_eval
 
 ENV_VARS = ["SECRET_KEY", "COIN_MANAGER_URL", "SECURE_SSL_REDIRECT",
             "MARKET_MANAGER_DAEMON_HOST", "MARKET_MANAGER_DAEMON_PORT",
@@ -21,4 +21,5 @@ ALLOWED_HOSTS = ["marketmanager", "marketmanager-api", "marketmanager-daemon",
 DATABASES = get_db_details_postgres()
 
 CORS_ORIGIN_WHITELIST = CORS_ORIGIN_WHITELIST.split(",")
-DEBUG = environ.get("DEBUG", False)
+DEBUG = bool_eval(environ.get("DEBUG", False))
+SECURE_SSL_REDIRECT = bool_eval(SECURE_SSL_REDIRECT)
