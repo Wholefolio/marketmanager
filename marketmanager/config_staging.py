@@ -4,7 +4,7 @@ from applib.tools import get_db_details_postgres, bool_eval
 
 ENV_VARS = ["SECRET_KEY", "COIN_MANAGER_URL", "SECURE_SSL_REDIRECT",
             "MARKET_MANAGER_DAEMON_HOST", "MARKET_MANAGER_DAEMON_PORT",
-            "CORS_ORIGIN_WHITELIST", "REDIS_HOST"]
+            "CORS_ORIGIN_WHITELIST", "REDIS_HOST", "ALLOWED_HOSTS"]
 CORS_ORIGIN_WHITELIST = None
 for var in ENV_VARS:
     value = environ.get(var, False)
@@ -15,8 +15,7 @@ for var in ENV_VARS:
         raise ImproperlyConfigured(msg)
 
 # Specify the allowed hosts for the app
-ALLOWED_HOSTS = ["marketmanager", "marketmanager-api", "marketmanager-daemon",
-                 "api.wholefolio.io"]
+ALLOWED_HOSTS = ALLOWED_HOSTS.split(",")
 
 DATABASES = get_db_details_postgres()
 
