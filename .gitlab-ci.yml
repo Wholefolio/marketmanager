@@ -26,6 +26,7 @@ variables:
   POD_IP: localhost
   REDIS_HOST: localhost
   DEBUG: "True"
+  ALLOWED_HOSTS: "localhost"
   CORS_ORIGIN_WHITELIST: "localhost"
   SECURE_SSL_REDIRECT: "True"
 
