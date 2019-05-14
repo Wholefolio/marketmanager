@@ -21,6 +21,6 @@ BROKER_URL = "amqp://guest:guest@rabbitmq:5672//"
 MARKET_MANAGER_DAEMON_HOST = "localhost"
 MARKET_MANAGER_DAEMON_PORT = 5000
 
-CORS_ORIGIN_WHITELIST = ["localhost", "localhost:3000"]
+CORS_ORIGIN_WHITELIST = ["http://localhost", "http://localhost:3000"]
 
 REDIS_HOST = "redis:6379"
