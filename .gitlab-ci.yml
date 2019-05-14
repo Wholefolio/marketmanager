@@ -27,7 +27,7 @@ variables:
   REDIS_HOST: localhost
   DEBUG: "True"
   ALLOWED_HOSTS: "localhost"
-  CORS_ORIGIN_WHITELIST: "localhost"
+  CORS_ORIGIN_WHITELIST: "http://localhost"
   SECURE_SSL_REDIRECT: "True"
 
 unittests:
