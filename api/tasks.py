@@ -4,6 +4,7 @@ from django.db.utils import OperationalError
 from django_celery_results.models import TaskResult
 from django.db import transaction
 from django.utils import timezone
+from celery import Task
 
 from marketmanager.updater import ExchangeUpdater
 from marketmanager.celery import app
@@ -11,7 +12,16 @@ from api.models import Exchange, ExchangeStatus
 from api import utils
 
 
-@app.task(bind=True)
+class LogErrorsTask(Task):
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        logger = logging.getLogger("marketmanager-celery")
+        extra = {"task_id": self.request.id, "exchange": None}
+        logger = logging.LoggerAdapter(logger, extra)
+        logger.exception('Celery task failure!!!{}{}'.format(args, kwargs), exc_info=exc)
+        super(LogErrorsTask, self).on_failure(exc, task_id, args, kwargs, einfo)
+
+
+@app.task(bind=True, base=LogErrorsTask)
 def fetch_exchange_data(self, exchange_id):
     """Task to fetch and update exchange data via ccxt."""
     logger = logging.getLogger("marketmanager-celery")
