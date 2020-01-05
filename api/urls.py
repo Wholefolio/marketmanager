@@ -12,4 +12,7 @@ router.register(r"daemon_status", views.DaemonStatus, basename="daemonstatus")
 router.register(r"task_results", views.TaskResults, basename="task_results")
 router.register(r"run_exchange", views.ExchangeRun, basename="run_exchange")
 
+# Internal routes
+router.register(r"internal/exchanges", views.ExchangeViewSet)
+router.register(r"internal/markets", views.MarketViewSet)
 urlpatterns = router.urls

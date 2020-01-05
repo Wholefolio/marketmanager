@@ -13,6 +13,7 @@ class ExchangeFilter(FilterSet):
         fields = {
             "name": ["exact"],
             "enabled": ["exact"],
+            "fiat_markets": ["exact"],
             "last_updated": ["lte", "gte"],
             "volume": ["lte", "gte"],
             "interval": ["lte", "gte", "exact"],

@@ -39,7 +39,7 @@ for setting in ['ALLOWED_HOSTS', 'DATABASES', 'SECRET_KEY', "DEBUG",
             "Mandatory setting {} is missing from config.".format(setting)
         )
 SECURE_REDIRECT_EXEMPT = ["healthz", "daemon_status", "task_results",
-                          "daemon_status", "exchange_statuses"]
+                          "daemon_status", "exchange_statuses", "internal"]
 BROKER_URL = "redis://{}/0".format(REDIS_HOST)
 CACHES = {
     "default": {
