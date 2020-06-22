@@ -12,6 +12,7 @@ variables:
   POSTGRES_DB: marketmanager
   POSTGRES_USER: runner
   POSTGRES_PASSWORD: ""
+  POSTGRES_HOST_AUTH_METHOD: trust
   DB_DATABASE: marketmanager
   DB_USERNAME: runner
   DB_PASSWORD: ""
