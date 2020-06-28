@@ -1,7 +1,7 @@
 from ccxt.base import errors
 
 
-def fetch_tickers(ccxt_exchange):
+def fetch_tickers(ccxt_exchange, exchange):
     """Try to fetch the tickers data from the CCXT exchange."""
     data = {}
     if not ccxt_exchange.has.get('fetchTickers'):
@@ -17,7 +17,7 @@ def fetch_tickers(ccxt_exchange):
             markets = ccxt_exchange.fetchMarkets()
             for market in markets:
                 # We only want USD markets if the exchange is fiat
-                if market["quote"] != "USD" and ccxt_exchange.fiat_markets:
+                if market["quote"] != "USD" and exchange.fiat_markets:
                     continue
                 name = market["symbol"]
                 data[name] = ccxt_exchange.fetchTicker(name)
