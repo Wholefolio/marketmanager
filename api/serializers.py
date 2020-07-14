@@ -26,7 +26,7 @@ class MarketSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Market
         fields = ("id", "name", "exchange", "volume", "last", "bid", "ask",
-                  "base", "quote")
+                  "base", "quote", "updated")
 
 
 class ExchangeStatusSerializer(serializers.ModelSerializer):

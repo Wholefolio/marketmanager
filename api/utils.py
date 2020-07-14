@@ -1,12 +1,17 @@
 from ccxt.base import errors
+import logging
 
 
 def fetch_tickers(ccxt_exchange, exchange):
     """Try to fetch the tickers data from the CCXT exchange."""
+    logger = logging.getLogger("marketmanager")
+    name = exchange.name
     data = {}
     if not ccxt_exchange.has.get('fetchTickers'):
+        logger.info("Exchange {} does not have fetchTickers method".format(name))
         # Exchange doesn't support fetching all tickers
         if ccxt_exchange.symbols:
+            logger.info("Exchange {} does have the symbols".format(name))
             data = {}
             for symbol in ccxt_exchange.symbols:
                 try:
@@ -14,15 +19,19 @@ def fetch_tickers(ccxt_exchange, exchange):
                 except errors.ExchangeError:
                     pass
         elif ccxt_exchange.has.get("fetchMarkets"):
+            logger.info("Exchange {} does have the fetchMarkets method".format(name))
             markets = ccxt_exchange.fetchMarkets()
             for market in markets:
                 # We only want USD markets if the exchange is fiat
                 if market["quote"] != "USD" and exchange.fiat_markets:
                     continue
-                name = market["symbol"]
-                data[name] = ccxt_exchange.fetchTicker(name)
+                market_name = market["symbol"]
+                logger.debug("Fetching {}".format(market_name))
+                data[name] = ccxt_exchange.fetchTicker(market_name)
         else:
-            return "No symbols in exchange {}".format(ccxt_exchange.name)
+            msg = "No symbols in exchange {}".format(ccxt_exchange.name)
+            logger.warning(msg)
+            return msg
     else:
         data = ccxt_exchange.fetchTickers()
     return data

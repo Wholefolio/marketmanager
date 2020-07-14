@@ -4,11 +4,12 @@ from django.db.utils import OperationalError
 from django_celery_results.models import TaskResult
 from django.db import transaction
 from django.utils import timezone
+from django.conf import settings
 from celery import Task
 
 from marketmanager.updater import ExchangeUpdater
 from marketmanager.celery import app
-from api.models import Exchange, ExchangeStatus
+from api.models import Exchange, ExchangeStatus, Market
 from api import utils
 
 
@@ -68,3 +69,12 @@ def clear_task_results():
         for task in tasks:
             task.delete()
     return "Clearing success"
+
+
+@app.task
+def clear_stale_markets():
+    """ Clear markets that haven't been updated in the configured period"""
+    d = timezone.now() - timezone.delta(days=settings.MARKET_STALE_DAYS)
+    markets = Market.objects.filter(updated__lte=d)
+    markets.delete()
+    return "Cleared {} stale markets".format(len(markets))

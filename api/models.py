@@ -41,6 +41,7 @@ class Market(models.Model):
     last = models.FloatField()
     bid = models.FloatField()
     ask = models.FloatField()
+    updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         """Return a human readable representation of the model instance."""

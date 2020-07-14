@@ -3,16 +3,10 @@ import os
 import sys
 from django.core.exceptions import ImproperlyConfigured
 
-env = os.environ.get('PY_ENV', "dev")
-if env == "staging":
-    from marketmanager import config_staging as config
-elif env == "production":
-    from marketmanager import config_production as config
-else:
-    from marketmanager import config_dev as config
-
+from applib.tools import get_db_details_postgres, bool_eval
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # Celery config
 CELERYD_CONCURRENCY = 4
 CELERY_RESULT_BACKEND = 'django-db'
@@ -23,21 +17,30 @@ CELERYD_LOG_FORMAT += ',"task_id":"%(task_id)s","message":"%(message)s"}'
 BROKER_CONNECTION_TIMEOUT = 3
 BROKER_CONNECTION_MAX_RETRIES = 5
 BROKER_POOL_LIMIT = None
-# Get the configuration
-ALLOWED_HOSTS = DATABASES = SECRET_KEY = DEBUG = MARKET_MANAGER_DAEMON_HOST \
+
+# Get the configuration for Marketmanager
+ALLOWED_HOSTS = SECRET_KEY = MARKET_MANAGER_DAEMON_HOST \
               = STORAGE_EXCHANGE_URL = CORS_ORIGIN_WHITELIST = REDIS_HOST \
               = MARKET_MANAGER_DAEMON_PORT = None
 
-for setting in ['ALLOWED_HOSTS', 'DATABASES', 'SECRET_KEY', "DEBUG",
-                "COIN_MANAGER_URL", "REDIS_HOST", "MARKET_MANAGER_DAEMON_HOST",
-                "MARKET_MANAGER_DAEMON_PORT", "CORS_ORIGIN_WHITELIST",
-                "SECURE_SSL_REDIRECT"]:
-    try:
-        globals()[setting] = getattr(config, setting)
-    except AttributeError:
-        raise ImproperlyConfigured(
-            "Mandatory setting {} is missing from config.".format(setting)
-        )
+DATABASES = get_db_details_postgres()
+DEBUG = bool_eval(os.environ.get("DEBUG", False))
+
+MARKET_STALE_DAYS = os.environ.get("MARKET_STALE_DAYS", 7)
+
+env_vars = ["ALLOWED_HOSTS", "SECRET_KEY", "COIN_MANAGER_URL", "REDIS_HOST", "MARKET_MANAGER_DAEMON_HOST",
+            "MARKET_MANAGER_DAEMON_PORT", "CORS_ORIGIN_WHITELIST", "SECURE_SSL_REDIRECT"]
+for key in env_vars:
+    if key not in os.environ:
+        raise ImproperlyConfigured("Missing mandatory Env variable {}".format(key))
+    value = os.environ.get(key, None)
+    if key == "ALLOWED_HOSTS" or key == "SECURE_REDIRECT_EXEMPT" or key == "CORS_ORIGIN_WHITELIST":
+        globals()[key] = value.split(",")
+    elif key == "SECURE_SSL_REDIRECT":
+        globals()[key] = bool_eval(value)
+    else:
+        globals()[key] = value
+
 SECURE_REDIRECT_EXEMPT = ["healthz", "daemon_status", "task_results",
                           "daemon_status", "exchange_statuses", "internal"]
 BROKER_URL = "redis://{}/0".format(REDIS_HOST)

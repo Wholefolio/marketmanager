@@ -2,3 +2,4 @@
 marketmanager.log
 static/
 celerybeat*
+*.pyc

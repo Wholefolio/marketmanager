@@ -39,6 +39,14 @@ unittests:
   script:
     - python3 manage.py test --noinput
 
+linter:
+  stage: test
+  tags:
+    - docker
+  image: registry.gitlab.com/cryptohunters/base-images/flake8:latest
+  script:
+    - flake8 --exclude="*migrations*,manage.py" --max-line-length=110
+
 usability-tests:
   stage: test
   tags:

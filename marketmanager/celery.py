@@ -23,4 +23,8 @@ app.conf.beat_schedule = {
         'task': 'adapters.tasks.clear_task_results',
         'schedule': crontab(minute=0, hour=10, day_of_week=0),
     },
+    'clear_stale_markets': {
+        'task': 'adapters.tasks.clear_stale_markets',
+        'schedule': crontab(minute=0, hour=10),
+    }
 }
