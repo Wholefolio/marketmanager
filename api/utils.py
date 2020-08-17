@@ -27,7 +27,7 @@ def fetch_tickers(ccxt_exchange, exchange):
                     continue
                 market_name = market["symbol"]
                 logger.debug("Fetching {}".format(market_name))
-                data[name] = ccxt_exchange.fetchTicker(market_name)
+                data[market_name] = ccxt_exchange.fetchTicker(market_name)
         else:
             msg = "No symbols in exchange {}".format(ccxt_exchange.name)
             logger.warning(msg)

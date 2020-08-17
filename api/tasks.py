@@ -46,6 +46,7 @@ def fetch_exchange_data(self, exchange_id):
     # Get the data
     logger.info("Fetching tickers.")
     data = utils.fetch_tickers(ccxt_exchange, exchange)
+    logger.debug("Raw data: {}".format(data))
     # Parse the data
     logger.info("Parsing the data.")
     update_data = utils.parse_market_data(data, exchange_id)
