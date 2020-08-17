@@ -4,9 +4,6 @@ stages:
   - deploy
   - migrate
 
-services:
-  - postgres:latest
-
 variables:
   REGISTRY: "gcr.io/positive-apex-225210/marketmanager"
   POSTGRES_DB: marketmanager
@@ -38,6 +35,8 @@ unittests:
   image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
   script:
     - python3 manage.py test --noinput
+  services:
+    - postgres:latest
 
 linter:
   stage: test
@@ -48,6 +47,9 @@ linter:
     - flake8 --exclude="*migrations*,manage.py" --max-line-length=110
 
 usability-tests:
+  services:
+    - postgres:latest
+
   stage: test
   tags:
     - docker

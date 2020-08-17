@@ -33,7 +33,8 @@ class MarketFilter(FilterSet):
             "volume": ["lte", "gte"],
             "last": ["lte", "gte"],
             "bid": ["lte", "gte"],
-            "ask": ["lte", "gte"]
+            "ask": ["lte", "gte"],
+            "updated": ["lte", "gte"]
         }
 
 
