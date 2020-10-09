@@ -18,7 +18,7 @@ def fetch_tickers(ccxt_exchange, exchange):
                     data[symbol] = ccxt_exchange.fetchTicker(symbol)
                 except errors.ExchangeError:
                     pass
-                except errors.DDoSProtection, errors.RequestTimeout:
+                except (errors.DDoSProtection, errors.RequestTimeout):
                     break
         elif ccxt_exchange.has.get("fetchMarkets"):
             logger.info("Exchange {} does have the fetchMarkets method".format(name))
@@ -31,7 +31,7 @@ def fetch_tickers(ccxt_exchange, exchange):
                 try:
                     logger.debug("Fetching {}".format(market_name))
                     data[market_name] = ccxt_exchange.fetchTicker(market_name)
-                except errors.DDoSProtection, errors.RequestTimeout:
+                except (errors.DDoSProtection, errors.RequestTimeout):
                     break
         else:
             msg = "No symbols in exchange {}".format(ccxt_exchange.name)
