@@ -120,7 +120,10 @@ class ExchangeUpdater:
         self.exchange.top_pair = top_pair
         self.exchange.top_pair_volume = top_pair_volume
         self.exchange.save()
-        self.logger.info("Exchange volume and top pairs saved successfully!")
+        msg = "Exchange volume and top pairs saved successfully!"
+        msg += "Volume: {}, Top Pair: {}, Top Pair Volume: {}".format(exchange_volume,
+                                                                      top_pair, top_pair_volume)
+        self.logger.info(msg)
 
     def updateExchange(self):
         """Patch the exchange last updated timestamp."""
