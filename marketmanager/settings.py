@@ -99,7 +99,6 @@ REST_FRAMEWORK = {
 }
 # Application definition
 INSTALLED_APPS = [
-    'django2go',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.staticfiles',
