@@ -1,14 +1,8 @@
 """Market Manager - manage crypto exchange data."""
-import os
-import sys
-import pickle
 import logging.config
 import django
 from django.utils import timezone
 from time import sleep
-from concurrent.futures import ThreadPoolExecutor
-from socket import (socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR)
-from socket import timeout as SOCKET_TIMEOUT
 
 from api.tasks import fetch_exchange_data
 from api.models import Exchange, ExchangeStatus
@@ -31,16 +25,6 @@ class MarketManager(object):
         self.lock_file = config["lock_file"]
         self.worker_limit = int(config["threads"])
         self.logger = logging.getLogger("marketmanager")
-
-    def checkCeleryStatus(self):
-        """Check the status of celery."""
-        # Run the check 3 times in case of failure
-        for i in range(1, 3):
-            result = app.control.inspect().stats()
-            if result:
-                self.logger.info("Got celery stats: {}".format(result))
-                return result
-            self.logger.error("Couldn't get celery stats on {} try".format(i))
 
     def checkTaskResult(self, status):
         """Check the status of a running exchange in celery."""
@@ -94,69 +78,7 @@ class MarketManager(object):
         self.logger.info(msg)
         return True
 
-    def handleConfigEvent(self, **request):
-        """Configure the running manager instance."""
-        pass
-
-    def handleStatusEvent(self, request_id):
-        """Get the status of the market manager process and db."""
-        response = {"id": request_id,
-                    "type": "status-response",
-                    "status": "running"}
-        return response
-
-    def handler(self, connection, addr):
-        """Handle an incoming request.
-        We support 2 types of incoming - configure and status."""
-        pid = os.getpid()
-        BUFFER = 1024
-        self.logger.info("Handling connection [%s].", pid)
-        received = bytes()
-        while True:
-            try:
-                data = connection.recv(BUFFER)
-            except SOCKET_TIMEOUT:
-                break
-            received += data
-            # There is an extra 33 bytes that comes through the connection
-            if sys.getsizeof(data) < (BUFFER + 33):
-                break
-            else:
-                # Set a timeout. This is needed if the data is exactly the
-                # length of the buffer - in that case without a timeout
-                # we will get stuck in the recv part of the loop
-                connection.settimeout(0.5)
-        loaded_data = pickle.loads(data)
-        self.logger.debug("Data loaded: %s", loaded_data)
-        if not isinstance(loaded_data, dict):
-            response = pickle.dumps("Bad request - expected dictionary.")
-            connection.send(response)
-            self.logger.debug("Bad request - expected dictionary")
-            return False
-        if loaded_data["type"] == "status":
-            response = self.handleStatusEvent(loaded_data["id"])
-            self.logger.debug("Response to status request: %s", response)
-        elif loaded_data["type"] == "configure":
-            response = self.handleConfigEvent(loaded_data["data"])
-            self.logger.debug("Response to configure request: %s", response)
-        connection.send(pickle.dumps(response))
-        connection.close()
-
-    def incoming(self):
-        """Loop upon the incoming queue for incoming requests."""
-        with ThreadPoolExecutor(max_workers=self.worker_limit) as executor:
-            with socket(AF_INET, SOCK_STREAM) as sock:
-                sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-                sock.bind(("0.0.0.0", self.socket_port))
-                sock.listen(10)
-                self.logger.info("Server listening on local TCP socket %s",
-                                 self.socket_port)
-                while True:
-                    conn, addr = sock.accept()
-                    executor.submit(self.handler, conn, addr)
-                self.logger.info("Server shutting down")
-
-    def getExchanges(self, exchange_id=None):
+    def getExchanges(self, exchange_id: int = None):
         """Get the exchange(s) from the db. Wrap around the DB Errors."""
         if not exchange_id:
             exchanges = Exchange.objects.filter(enabled=True)
@@ -165,7 +87,7 @@ class MarketManager(object):
         self.logger.info("Got exchanges: {}".format(exchanges))
         return exchanges
 
-    def getExchangeStatus(self, exc_id=None):
+    def getExchangeStatus(self, exc_id: int = None):
         """Get the ExchangeStatus entry(s). Wrap errors from the DB."""
         if exc_id:
             queryset = ExchangeStatus.objects.filter(exchange_id=exc_id)

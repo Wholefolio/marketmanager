@@ -30,13 +30,25 @@ variables:
 
 unittests:
   stage: test
+  variables:
+    DOCKER_INFLUXDB_INIT_USERNAME: influxdb
+    DOCKER_INFLUXDB_INIT_PASSWORD: influxdb
+    DOCKER_INFLUXDB_INIT_ORG: wholefolio
+    DOCKER_INFLUXDB_INIT_BUCKET: marketmanager
+    INFLUXDB_ORG: wholefolio
+    INFLUXDB_URL: http://localhost:8086
+    INFLUXDB_DEFAULT_BUCKET: marketmanager
   tags:
    - docker
   image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
   script:
+    - apt-get update && apt-get install jq
+    - influx setup -f -o $INFLUXDB_ORG -p $DOCKER_INFLUXDB_INIT_PASSWORD -u $DOCKER_INFLUXDB_INIT_USERNAME -b $DOCKER_INFLUXDB_INIT_BUCKET
+    - INFLUXDB_TOKEN=$(influx auth create -u $DOCKER_INFLUXDB_INIT_USERNAME -o $INFLUXDB_ORG --write-buckets --read-buckets --json | jq .token)
     - python3 manage.py test --noinput
   services:
     - postgres:latest
+    - influxdb: 2.0.6
 
 linter:
   stage: test

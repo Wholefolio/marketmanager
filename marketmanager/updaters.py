@@ -5,14 +5,68 @@ from django.conf import settings
 
 from api.models import Exchange, Market
 from applib.tools import appRequest
+from marketmanager.influxdb import Client as InfluxClient
+
+
+class InfluxUpdater:
+    """Handle inserts of timeseries to InfluxDB. We have 2 cases:
+    * Markets were the base is in fiat
+    * Markets were the base is another cryptocurrency"""
+    def __init__(self, exchange: Exchange, data: dict, task_id: str = None):
+        self.exchange = exchange
+        self.data = data
+        extra = {"task_id": task_id, "exchange": self.exchange}
+        self.logger = logging.getLogger("marketmanager-celery")
+        self.logger = logging.LoggerAdapter(self.logger, extra)
+
+    def _insertTimeseries(self, measurement: str, data: list):
+        client = InfluxClient()
+        for current in data:
+            self.logger.debug(f"Inserting {current}.")
+            client.write(measurement, **current)
+
+    def _transformInsertFiat(self, measurement: str = settings.INFLUX_MEASUREMENT_FIAT_MARKETS):
+        """Transform the currency-fiat data to tags and fields expected by Influx"""
+        self.logger.info("Transforming fiat data for InfluxDB")
+        output = []
+        for symbol, values in self.data.items():
+            if values["quote"] != "USD":
+                # We only want values in USD
+                continue
+            output.append({
+                "tags": [{"key": "symbol", "value": values["base"]}],
+                "fields": [{"key": "price", "value": values["last"]}]
+            })
+        print(self._insertTimeseries(measurement, output))
+
+    def _transformInsertPairs(self, measurement: str = settings.INFLUX_MEASUREMENT_PAIRS):
+        """Transform the currency pairs data to tags and fields expected by Influx"""
+        self.logger.info("Transforming market pairs data for InfluxDB")
+        output = []
+        for symbol, values in self.data.items():
+            output.append({
+                "tags": [
+                    {"key": "base", "value": values["base"]}, 
+                    {"key": "quote", "value": values["quote"]}
+                ],
+                "fields": [{"key": "last", "value": values["last"]}]
+            })
+        self._insertTimeseries(measurement, output)
+
+    def write(self):
+        """Write the Market data of the exchange to InfluxDB"""
+        if self.exchange.fiat_markets:
+            self._transformInsertFiat()
+        self._transformInsertPairs()
 
 
 class ExchangeUpdater:
-    """Update an exchanges market data"""
+    """Insert/Update an exchanges market data"""
     def __init__(self, exchange_id, data, task_id=None):
         self.exchange_id = exchange_id
         self.exchange = Exchange.objects.get(id=self.exchange_id)
         self.market_data = data
+        self.task_id = task_id
         extra = {"task_id": task_id, "exchange": self.exchange}
         self.logger = logging.getLogger("marketmanager-celery")
         self.logger = logging.LoggerAdapter(self.logger, extra)
@@ -83,9 +137,10 @@ class ExchangeUpdater:
         self.logger.info("Starting update!")
         # Fetch the old data by filtering on source id
         self.logger.info("Fetching old data...")
-        current_data = Market.objects.select_for_update().filter(
-                                                        exchange=self.exchange)
+        current_data = Market.objects.select_for_update().filter(exchange=self.exchange)
         self.summarizeData()
+        influx_updater = InfluxUpdater(self.exchange, self.market_data, self.task_id)
+        influx_updater.write()
         if not current_data:
             self.createMarkets()
         else:

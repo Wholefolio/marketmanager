@@ -6,7 +6,7 @@ from api.models import Exchange, ExchangeStatus
 
 
 class Command(BaseCommand):
-    help = 'Run the selected adapter.'
+    help = 'Run the selected exchange.'
 
     def add_arguments(self, parser):
         parser.add_argument('id', action="store", type=int)
@@ -14,7 +14,7 @@ class Command(BaseCommand):
                             help="Send to celery as a task", required=False)
 
     def handle(self, *args, **options):
-        # Check if the adapter exists
+        # Check if the exchange exists
         queryset = Exchange.objects.filter(id=options["id"])
         if not queryset:
             msg = "No exchange with that ID exists."
@@ -30,4 +30,4 @@ class Command(BaseCommand):
             msg += "Task ID: {}".format(task_id)
             return self.stdout.write(self.style.SUCCESS(msg))
         fetch_exchange_data(exchange.id)
-        return self.style.SUCCESS("Finished running adapter.")
+        return self.style.SUCCESS("Finished running exchange gathering data.")

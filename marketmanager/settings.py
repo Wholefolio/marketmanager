@@ -29,7 +29,8 @@ DEBUG = bool_eval(os.environ.get("DEBUG", False))
 MARKET_STALE_DAYS = os.environ.get("MARKET_STALE_DAYS", 7)
 
 env_vars = ["ALLOWED_HOSTS", "SECRET_KEY", "COIN_MANAGER_URL", "REDIS_HOST", "MARKET_MANAGER_DAEMON_HOST",
-            "MARKET_MANAGER_DAEMON_PORT", "CORS_ORIGIN_WHITELIST", "SECURE_SSL_REDIRECT"]
+            "MARKET_MANAGER_DAEMON_PORT", "CORS_ORIGIN_WHITELIST", "SECURE_SSL_REDIRECT", "INFLUXDB_URL",
+            "INFLUXDB_TOKEN", "INFLUXDB_ORG", "INFLUXDB_DEFAULT_BUCKET"]
 for key in env_vars:
     if key not in os.environ:
         raise ImproperlyConfigured("Missing mandatory Env variable {}".format(key))
@@ -56,6 +57,10 @@ CACHES = {
     }
 }
 CACHE_TTL = 60
+
+INFLUX_MEASUREMENT_FIAT_MARKETS = "currencies_fiat"
+INFLUX_MEASUREMENT_PAIRS = "currency_pairs"
+
 if "test" in sys.argv:
     # Don't cache while testing
     CACHE_TTL = 0
@@ -75,7 +80,7 @@ MARKET_MANAGER_DAEMON = {
     "daemon": False,
     "socket_port": 5000,
     "processes": {
-        "incoming": None, "scheduler": None, "poller": None
+        "scheduler": None, "poller": None
     }
 }
 
@@ -94,6 +99,7 @@ REST_FRAMEWORK = {
 }
 # Application definition
 INSTALLED_APPS = [
+    'django2go',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.staticfiles',

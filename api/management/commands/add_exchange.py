@@ -18,7 +18,7 @@ class Command(BaseCommand):
         group.add_argument("--all", action="store_true", dest="all",
                            help=all_help)
         parser.add_argument("--interval", action="store", dest="interval",
-                            help="adapter interval", default=300)
+                            help="exchange interval", default=300)
         parser.add_argument("--marketmanager", action="store",
                             dest="manager_host", required=False,
                             help="marketmanager host", default=300)
@@ -84,7 +84,7 @@ class Command(BaseCommand):
         if "MARKETMANAGER_HOST" in os.environ:
             self.marketmanager_host = os.environ["MARKETMANAGER_HOST"]
         if options.get("marketmanager_host"):
-            self.marketmanager_host = options["adapter"]
+            self.marketmanager_host = options["marketmanager_host"]
         if options["all"]:
             return self.create_all(options["interval"])
         self.create(options["name"], options["interval"])

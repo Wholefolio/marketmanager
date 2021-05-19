@@ -132,5 +132,5 @@ class ExchangeStatusTest(TestCase):
                                    format="json")
 
     def testGetList(self):
-        """Test getting the list of adapters."""
+        """Test getting the list of exchanges."""
         self.assertEqual(self.get.status_code, status.HTTP_200_OK)

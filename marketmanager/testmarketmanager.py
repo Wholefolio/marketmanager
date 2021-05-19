@@ -2,10 +2,8 @@
 import unittest
 import os
 import time
-import pickle
 import multiprocessing as mp
 from unittest.mock import patch
-from socket import socket, AF_INET, SOCK_STREAM
 from django.db.models.query import QuerySet
 from django.utils import timezone
 from django.conf import settings
@@ -55,7 +53,7 @@ class TestMarketManager(unittest.TestCase):
         self.assertIsInstance(self.manager, MarketManager)
 
     def testCheckExchange_New(self):
-        """Run the checkExchange method with new adapter.
+        """Run the checkExchange method with new exchange.
 
         It must return run now(aka True)
         """
@@ -74,7 +72,7 @@ class TestMarketManager(unittest.TestCase):
         self.assertFalse(run)
 
     def testCheckExchange_Disabled(self):
-        """Run the checkExchange method with a disabled adapter.
+        """Run the checkExchange method with a disabled exchange.
 
         It must return not to run(aka False)
         """
@@ -106,35 +104,15 @@ class TestMarketManager(unittest.TestCase):
         run = self.manager.checkExchange(self.exchange, self.status)
         self.assertTrue(run)
 
-    def testHandleStatusEvent(self):
-        """Test the get status on empty MarketManager."""
-        res = self.manager.handleStatusEvent(1)
-        self.assertEqual((res['id'], res['type']), (1, "status-response"))
-
     def testGetExchange(self):
-        """Test getting the adapter objects from the DB."""
+        """Test getting the exchange objects from the DB."""
         result = self.manager.getExchanges()
         self.assertTrue(isinstance(result, QuerySet))
-
-    def testIncoming(self):
-        """Test the incoming loop with a status type request."""
-        p = mp.Process(target=self.manager.incoming)
-        p.start()
-        time.sleep(0.1)
-        s = socket(AF_INET, SOCK_STREAM)
-        s.connect(("localhost", config['socket_port']))
-        data = pickle.dumps({'id': 1, 'type': 'status'})
-        s.sendall(data)
-        data = s.recv(1024)
-        res = pickle.loads(data)
-        s.close()
-        self.assertEqual((res["type"], res["id"]), ("status-response", 1))
-        p.terminate()
 
 # Test main processes - scheduler, poller
 
     def testScheduler_WithoutExchanges(self):
-        """Test the scheduler process with no adapters."""
+        """Test the scheduler process with no exchanges."""
         self.exchange.delete()
         p = mp.Process(target=self.manager.scheduler)
         p.start()
@@ -144,7 +122,7 @@ class TestMarketManager(unittest.TestCase):
         p.terminate()
 
     def testScheduler_WithExchange(self):
-        """Test the scheduler process with no adapters."""
+        """Test the scheduler process with no exchanges."""
         p = mp.Process(target=self.manager.scheduler)
         p.start()
         time.sleep(1)

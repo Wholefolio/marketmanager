@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.conf import settings
 from celery import Task
 
-from marketmanager.updater import ExchangeUpdater
+from marketmanager.updaters import ExchangeUpdater
 from marketmanager.celery import app
 from api.models import Exchange, ExchangeStatus, Market
 from api import utils
@@ -23,7 +23,7 @@ class LogErrorsTask(Task):
 
 
 @app.task(bind=True, base=LogErrorsTask)
-def fetch_exchange_data(self, exchange_id):
+def fetch_exchange_data(self, exchange_id: int):
     """Task to fetch and update exchange data via ccxt."""
     logger = logging.getLogger("marketmanager-celery")
     extra = {"task_id": self.request.id, "exchange": None}
