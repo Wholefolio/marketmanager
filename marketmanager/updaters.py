@@ -46,7 +46,7 @@ class InfluxUpdater:
         for symbol, values in self.data.items():
             output.append({
                 "tags": [
-                    {"key": "base", "value": values["base"]}, 
+                    {"key": "base", "value": values["base"]},
                     {"key": "quote", "value": values["quote"]}
                 ],
                 "fields": [{"key": "last", "value": values["last"]}]
