@@ -36,7 +36,7 @@ unittests:
     DOCKER_INFLUXDB_INIT_ORG: wholefolio
     DOCKER_INFLUXDB_INIT_BUCKET: marketmanager
     INFLUXDB_ORG: wholefolio
-    INFLUXDB_URL: http://localhost:8086
+    INFLUXDB_URL: http://influxdb:8086
     INFLUXDB_DEFAULT_BUCKET: marketmanager
     DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: JCIvUyHIwmyq1u8VxkPWKW4tgEuIXXkZsSlUMZ7c9dJG8nSWqKmopxv-w450EzjajpEuLPJjknD_52CTCcRb_g==
     INFLUXDB_TOKEN: ${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}
