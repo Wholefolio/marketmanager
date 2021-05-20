@@ -34,18 +34,20 @@ unittests:
     DOCKER_INFLUXDB_INIT_USERNAME: influxdb
     DOCKER_INFLUXDB_INIT_PASSWORD: influxdb
     DOCKER_INFLUXDB_INIT_ORG: wholefolio
-    DOCKER_INFLUXDB_INIT_BUCKET: marketmanager
+    DOCKER_INFLUXDB_INIT_PASSWORD: marketmanager
     INFLUXDB_ORG: wholefolio
     INFLUXDB_URL: http://influxdb:8086
     INFLUXDB_DEFAULT_BUCKET: marketmanager
-    DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: JCIvUyHIwmyq1u8VxkPWKW4tgEuIXXkZsSlUMZ7c9dJG8nSWqKmopxv-w450EzjajpEuLPJjknD_52CTCcRb_g==
-    INFLUXDB_TOKEN: ${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}
   tags:
    - docker
   image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
   script:
     - apt-get update && apt-get install jq
-    - sleep 600
+    - wget https://dl.influxdata.com/influxdb/releases/influxdb2-2.0.6-linux-amd64.tar.gz
+    - tar xzvf influxdb2-2.0.6-linux-amd64.tar.gz
+    - influxdb2-2.0.6-linux-amd64/influx setup -f --host ${INFLUDB_URL} -u ${DOCKER_INFLUXDB_INIT_USERNAME} -p ${DOCKER_INFLUXDB_INIT_PASSWORD} -o ${INFLUXDB_ORG} -b ${INFLUXDB_DEFAULT_BUCKET}
+    - export INFLUX_TOKEN=$(influxdb2-2.0.6-linux-amd64/influx auth list --json | jq .[].token)
+    - echo $INFLUX_TOKEN
     - python3 manage.py test --noinput
   services:
     - postgres:latest
