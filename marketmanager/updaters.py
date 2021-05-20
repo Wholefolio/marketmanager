@@ -34,10 +34,11 @@ class InfluxUpdater:
                 # We only want values in USD
                 continue
             output.append({
-                "tags": [{"key": "symbol", "value": values["base"]}],
+                "tags": [{"key": "symbol", "value": values["base"]},
+                         {"key": "exchange", "value": self.exchange.id}],
                 "fields": [{"key": "price", "value": float(values["last"])}]
             })
-        print(self._insertTimeseries(measurement, output))
+        self._insertTimeseries(measurement, output)
 
     def _transformInsertPairs(self, measurement: str = settings.INFLUX_MEASUREMENT_PAIRS):
         """Transform the currency pairs data to tags and fields expected by Influx"""
