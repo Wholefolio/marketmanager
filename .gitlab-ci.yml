@@ -45,7 +45,7 @@ unittests:
   image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
   script:
     - apt-get update && apt-get install jq
-    - env
+    - sleep 600
     - python3 manage.py test --noinput
   services:
     - postgres:latest
