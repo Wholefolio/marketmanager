@@ -35,7 +35,7 @@ class InfluxUpdater:
                 continue
             output.append({
                 "tags": [{"key": "symbol", "value": values["base"]}],
-                "fields": [{"key": "price", "value": values["last"]}]
+                "fields": [{"key": "price", "value": float(values["last"])}]
             })
         print(self._insertTimeseries(measurement, output))
 
@@ -49,7 +49,7 @@ class InfluxUpdater:
                     {"key": "base", "value": values["base"]},
                     {"key": "quote", "value": values["quote"]}
                 ],
-                "fields": [{"key": "last", "value": values["last"]}]
+                "fields": [{"key": "last", "value": float(values["last"])}]
             })
         self._insertTimeseries(measurement, output)
 
