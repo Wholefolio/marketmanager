@@ -45,7 +45,6 @@ unittests:
     - apt-get update && apt-get install jq
     - wget https://dl.influxdata.com/influxdb/releases/influxdb2-2.0.6-linux-amd64.tar.gz
     - tar xzvf influxdb2-2.0.6-linux-amd64.tar.gz
-    - sleep 300
     - influxdb2-2.0.6-linux-amd64/influx setup -f --host ${INFLUXDB_URL} -u ${DOCKER_INFLUXDB_INIT_USERNAME} -p ${DOCKER_INFLUXDB_INIT_PASSWORD} -o ${INFLUXDB_ORG} -b ${INFLUXDB_DEFAULT_BUCKET}
     - export INFLUX_TOKEN=$(influxdb2-2.0.6-linux-amd64/influx auth list --json | jq .[].token)
     - echo $INFLUX_TOKEN
