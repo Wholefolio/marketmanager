@@ -42,7 +42,7 @@ unittests:
    - docker
   image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
   script:
-    - apt-get update && apt-get install jq
+    - apk add jq
     - wget https://dl.influxdata.com/influxdb/releases/influxdb2-2.0.6-linux-amd64.tar.gz
     - tar xzvf influxdb2-2.0.6-linux-amd64.tar.gz
     - influxdb2-2.0.6-linux-amd64/influx setup -f --host ${INFLUXDB_URL} -u ${DOCKER_INFLUXDB_INIT_USERNAME} -p ${DOCKER_INFLUXDB_INIT_PASSWORD} -o ${INFLUXDB_ORG} -b ${INFLUXDB_DEFAULT_BUCKET}
