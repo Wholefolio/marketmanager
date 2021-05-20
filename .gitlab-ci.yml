@@ -27,6 +27,9 @@ variables:
   ALLOWED_HOSTS: "localhost"
   CORS_ORIGIN_WHITELIST: "http://localhost"
   SECURE_SSL_REDIRECT: "True"
+  INFLUXDB_ORG: wholefolio
+  INFLUXDB_URL: http://influxdb:8086
+  INFLUXDB_DEFAULT_BUCKET: marketmanager
 
 unittests:
   stage: test
@@ -35,18 +38,16 @@ unittests:
     DOCKER_INFLUXDB_INIT_PASSWORD: influxdb
     DOCKER_INFLUXDB_INIT_ORG: wholefolio
     DOCKER_INFLUXDB_INIT_PASSWORD: marketmanager
-    INFLUXDB_ORG: wholefolio
-    INFLUXDB_URL: http://influxdb:8086
-    INFLUXDB_DEFAULT_BUCKET: marketmanager
   tags:
    - docker
   image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
-  script:
+  before_script:
     - apk add jq
     - wget https://dl.influxdata.com/influxdb/releases/influxdb2-2.0.6-linux-amd64.tar.gz
     - tar xzvf influxdb2-2.0.6-linux-amd64.tar.gz
     - influxdb2-2.0.6-linux-amd64/influx setup -f --host ${INFLUXDB_URL} -u ${DOCKER_INFLUXDB_INIT_USERNAME} -p ${DOCKER_INFLUXDB_INIT_PASSWORD} -o ${INFLUXDB_ORG} -b ${INFLUXDB_DEFAULT_BUCKET}
     - export INFLUXDB_TOKEN=$(influxdb2-2.0.6-linux-amd64/influx auth list --json | jq .[].token | sed "s/\"//g")
+  script:
     - python3 manage.py test --noinput
   services:
     - postgres:latest
@@ -60,14 +61,25 @@ linter:
   script:
     - flake8 --exclude="*migrations*,manage.py" --max-line-length=110
 
-usability-tests:
+integration-tests:
   services:
     - postgres:latest
-
+    - influxdb:2.0.6
+  variables:
+    DOCKER_INFLUXDB_INIT_USERNAME: influxdb
+    DOCKER_INFLUXDB_INIT_PASSWORD: influxdb
+    DOCKER_INFLUXDB_INIT_ORG: wholefolio
+    DOCKER_INFLUXDB_INIT_PASSWORD: marketmanager
   stage: test
   tags:
     - docker
   image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
+  before_script:
+    - apk add jq
+    - wget https://dl.influxdata.com/influxdb/releases/influxdb2-2.0.6-linux-amd64.tar.gz
+    - tar xzvf influxdb2-2.0.6-linux-amd64.tar.gz
+    - influxdb2-2.0.6-linux-amd64/influx setup -f --host ${INFLUXDB_URL} -u ${DOCKER_INFLUXDB_INIT_USERNAME} -p ${DOCKER_INFLUXDB_INIT_PASSWORD} -o ${INFLUXDB_ORG} -b ${INFLUXDB_DEFAULT_BUCKET}
+    - export INFLUXDB_TOKEN=$(influxdb2-2.0.6-linux-amd64/influx auth list --json | jq .[].token | sed "s/\"//g")
   script:
     # Enable one exchange and verify the fetch_exchange_data task comples
     - python3 manage.py migrate
