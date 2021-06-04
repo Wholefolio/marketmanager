@@ -69,17 +69,14 @@ integration-tests:
     DOCKER_INFLUXDB_INIT_USERNAME: influxdb
     DOCKER_INFLUXDB_INIT_PASSWORD: influxdb
     DOCKER_INFLUXDB_INIT_ORG: wholefolio
-    DOCKER_INFLUXDB_INIT_PASSWORD: marketmanager
+    DOCKER_INFLUXDB_INIT_BUCKET: marketmanager
+    DOCKER_INFLUXDB_INIT_MODE: setup
+    DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: "JCIvUyHIwmyq1u8VxkPWKW4tgEuIXXkZsSlUMZ7c9dJG8nSWqKmopxv-w450EzjajpEuLPJjknD_52CTCcRb_g=="
+    INFLUXDB_TOKEN: "JCIvUyHIwmyq1u8VxkPWKW4tgEuIXXkZsSlUMZ7c9dJG8nSWqKmopxv-w450EzjajpEuLPJjknD_52CTCcRb_g=="
   stage: test
   tags:
     - docker
   image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
-  before_script:
-    - apk add jq
-    - wget https://dl.influxdata.com/influxdb/releases/influxdb2-2.0.6-linux-amd64.tar.gz
-    - tar xzvf influxdb2-2.0.6-linux-amd64.tar.gz
-    - influxdb2-2.0.6-linux-amd64/influx setup -f --host ${INFLUXDB_URL} -u ${DOCKER_INFLUXDB_INIT_USERNAME} -p ${DOCKER_INFLUXDB_INIT_PASSWORD} -o ${INFLUXDB_ORG} -b ${INFLUXDB_DEFAULT_BUCKET}
-    - export INFLUXDB_TOKEN=$(influxdb2-2.0.6-linux-amd64/influx auth list --json | jq .[].token | sed "s/\"//g")
   script:
     # Enable one exchange and verify the fetch_exchange_data task comples
     - python3 manage.py migrate
