@@ -7,13 +7,9 @@ stages:
 variables:
   REGISTRY: "wholefolio/marketmanager"
   POSTGRES_DB: marketmanager
-  POSTGRES_USER: runner
-  POSTGRES_PASSWORD: ""
+  POSTGRES_USER: user
+  POSTGRES_PASSWORD: user
   POSTGRES_HOST_AUTH_METHOD: trust
-  DB_DATABASE: $POSTGRES_DB
-  DB_USERNAME: $POSTGRES_USER
-  DB_PASSWORD: $POSTGRES_PASSWORD
-  DB_HOSTNAME: postgres
   GCP_CONTEXT: gke_positive-apex-225210_europe-west1-c_main
   DOCKER_INFLUXDB_INIT_USERNAME: influxdb
   DOCKER_INFLUXDB_INIT_PASSWORD: influxdb
@@ -33,6 +29,7 @@ unittests:
   image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
   script:
     - source .env
+    - export DB_HOSTNAME=postgres
     - python3 manage.py test --noinput
 
 linter:
@@ -55,6 +52,7 @@ integration-tests:
     ENABLED_EXCHANGES: binance,bittrex
   script:
     - source .env
+    - export DB_HOSTNAME=postgres
     - python3 manage.py migrate
     - python3 manage.py integration_tests
 
