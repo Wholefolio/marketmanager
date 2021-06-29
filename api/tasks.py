@@ -1,5 +1,6 @@
 import ccxt
 import logging
+from copy import deepcopy
 from django.db.utils import OperationalError
 from django_celery_results.models import TaskResult
 from django.db import transaction
@@ -7,10 +8,11 @@ from django.utils import timezone
 from django.conf import settings
 from celery import Task
 
-from marketmanager.updaters import ExchangeUpdater
+from marketmanager.updaters import ExchangeUpdater, InfluxUpdater
 from marketmanager.celery import app
-from api.models import Exchange, ExchangeStatus, Market
+from api.models import Exchange, Market
 from api import utils
+from marketmanager.utils import set_running_status
 
 
 class LogErrorsTask(Task):
@@ -38,11 +40,17 @@ def fetch_exchange_data(self, exchange_id: int):
         logger.error(msg)
         return msg
     if exchange.name.lower() not in ccxt.exchanges:
-        msg = "Exchange doesn't exist"
+        msg = "Exchange doesn't exist in CCXT."
         logger.error(msg)
-        return
+        raise ValueError(msg)
+    set_running_status(exchange, running=True)
     # Init the exchange from the ccxt module
     ccxt_exchange = getattr(ccxt, exchange.name.lower())()
+    # Check if the exchange has new fiat markets and is not flagged
+    if not exchange.fiat_markets:
+        if utils.check_fiat_markets(ccxt_exchange):
+            exchange.fiat_markets = True
+            exchange.save()
     # Get the data
     logger.info("Fetching tickers.")
     data = utils.fetch_tickers(ccxt_exchange, exchange)
@@ -51,14 +59,16 @@ def fetch_exchange_data(self, exchange_id: int):
     logger.info("Parsing the data.")
     update_data = utils.parse_market_data(data, exchange_id)
     # Create/update the data
-    logger.info("Starting updater.")
-    updater = ExchangeUpdater(exchange_id, update_data, self.request.id)
-    result = updater.run()
-    logger.info("Finished updater, updating ExchangeStatus.")
-    status = ExchangeStatus.objects.get(exchange=exchange)
-    status.running = False
-    status.last_run = timezone.now()
-    status.save()
+    logger.info("Starting updaters.")
+    try:
+        influx_data = deepcopy(update_data)
+        influx_updater = InfluxUpdater(exchange_id, influx_data, self.request.id)
+        influx_updater.write()
+        updater = ExchangeUpdater(exchange_id, update_data, self.request.id)
+        result = updater.run()
+    except Exception:
+        logger.critical("Critical failure within updaters - check logs")
+    set_running_status(exchange, running=False)
     return result
 
 

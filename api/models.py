@@ -14,7 +14,7 @@ class Exchange(models.Model):
     top_pair_volume = models.FloatField(null=True)
 
     fiat_markets = models.BooleanField(default=False, blank=True)
-    last_updated = models.DateTimeField(null=True)
+    last_data_fetch = models.DateTimeField(null=True)
     enabled = models.BooleanField(default=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)

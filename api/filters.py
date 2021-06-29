@@ -14,7 +14,7 @@ class ExchangeFilter(FilterSet):
             "name": ["exact"],
             "enabled": ["exact"],
             "fiat_markets": ["exact"],
-            "last_updated": ["lte", "gte"],
+            "last_data_fetch": ["lte", "gte"],
             "volume": ["lte", "gte"],
             "interval": ["lte", "gte", "exact"],
             "created": ["lte", "gte"],

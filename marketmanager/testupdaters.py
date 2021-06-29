@@ -3,8 +3,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.utils import timezone
 from influxdb_client import InfluxDBClient
-
-from marketmanager.updaters import ExchangeUpdater, InfluxUpdater
+from marketmanager.updaters import ExchangeUpdater, InfluxUpdater, FiatMarketModel, PairsMarketModel
 from api.models import Market, Exchange
 
 
@@ -30,6 +29,10 @@ class TestExchangeUpdater(unittest.TestCase):
 
     def tearDown(self):
         self.exchange.delete()
+
+    @classmethod
+    def tearDownClass(cls):
+        Market.objects.all().delete()
 
     def testInit(self):
         """Test that the Updater class was created."""
@@ -70,7 +73,7 @@ class TestExchangeUpdater(unittest.TestCase):
         """Test the updateExchange method."""
         self.updater.updateExchange()
         exchange = Exchange.objects.get(name="Test")
-        self.assertTrue(exchange.last_updated)
+        self.assertTrue(exchange.last_data_fetch)
 
     # Mock testing
     @patch("marketmanager.updaters.ExchangeUpdater.getBasePrices")
@@ -78,14 +81,13 @@ class TestExchangeUpdater(unittest.TestCase):
         """Test the main run method."""
         data_map = {"ICX": 6, "BNB": 10}
         mock_result.return_value = data_map
-        result = self.updater.run()
-        # We receieve a success string on finish
-        self.assertTrue(isinstance(result, str))
+        self.updater.run()
         markets = Market.objects.all()
         # Check if the market has been created
         self.assertEqual(len(markets), 1)
         # Check if the exchange has been updated
-        self.assertTrue(Exchange.objects.all()[0].last_updated)
+        print(Exchange.objects.all()[0])
+        self.assertTrue(Exchange.objects.get(name=self.exchange.name).last_data_fetch)
 
     @patch("marketmanager.updaters.ExchangeUpdater.getBasePrices")
     def testSummarizeData(self, mock_result):
@@ -124,14 +126,13 @@ class TestExchangeUpdater(unittest.TestCase):
     @patch("marketmanager.updaters.appRequest")
     def testGetBasePrices_WithoutCurrencies_WithLocal(self, mock_result):
         """Test the method with an existing local fiat market."""
-        data = {'base': 'USD', 'quote': 'BNB', 'last': 10, 'bid': 9, 'ask': 10,
+        data = {'quote': 'USD', 'base': 'BNB', 'last': 10, 'bid': 9, 'ask': 10,
                 'volume': 50, 'exchange_id': self.exchange.id}
         m = Market(name="BNB-USD", **data)
         m.save()
         mock_result.return_value = APP_REQUEST_ERROR
         output = self.updater.getBasePrices()
-        self.assertTrue(data["quote"] in output)
-        self.assertEqual(data["last"], output[data['quote']])
+        self.assertTrue(data["base"] in output)
 
 
 class TestInfluxUpdater(unittest.TestCase):
@@ -141,19 +142,21 @@ class TestInfluxUpdater(unittest.TestCase):
         self.exchange = Exchange(name="Test1", interval=300)
         self.exchange.save()
         self.quote = "ICX"
-        self.base = "BNB"
+        self.base = "BNBTEST"
         self.pair = f"{self.quote}-{self.base}"
         self.fiatpair = f"{self.base}-USD"
-        self.pair_measurement = "test-pair-mm"
-        self.fiat_measurement = "test-fiat-mm"
-        self.data = {self.pair: {'base': 'BNB', 'quote': 'ICX', 'last': 15,
+        self.pair_measurement = "tests-pair-mm"
+        self.fiat_measurement = "tests-fiat-mm"
+        self.data = {self.pair: {'base': self.base, 'quote': self.quote, 'last': 15.0,
                                  'bid': 0, 'ask': 0, 'volume': 50,
                                  'exchange_id': self.exchange.id}}
-        self.fiat_data = {"BNB-USD": {
-            'base': 'BNB', 'quote': 'USD', 'last': 150,
+        self.fiat_data = {"BNBTEST-USD": {
+            'base': 'BNBTEST', 'quote': 'USD', 'last': 150.0,
             'bid': 0, 'ask': 0, 'volume': 50,
             'exchange_id': self.exchange.id
         }}
+        PairsMarketModel.measurement = self.pair_measurement
+        FiatMarketModel.measurement = self.fiat_measurement
         self.updater = InfluxUpdater(self.exchange.id, self.data)
         self.influx_client = InfluxDBClient(url=settings.INFLUXDB_URL, token=settings.INFLUXDB_TOKEN)
         self.query_api = self.influx_client.query_api()
@@ -174,9 +177,9 @@ class TestInfluxUpdater(unittest.TestCase):
         """Test that the Updater class was created."""
         self.assertIsInstance(self.updater, InfluxUpdater)
 
-    def testTransformInsertPairs(self):
-        """Test inserting timeseries into Influx"""
-        self.updater._transformInsertPairs(self.pair_measurement)
+    def testWritePairs(self):
+        """Test inserting pair timeseries into Influx"""
+        self.updater._writePairs()
         query = f"from(bucket: \"{settings.INFLUXDB_DEFAULT_BUCKET}\") |> range(start: -1m)"
         query += f' |> filter(fn: (r) => (r._measurement == "{self.pair_measurement}"))'
         query += f' |> filter(fn: (r) => (r.quote == "{self.quote}"))'
@@ -188,13 +191,14 @@ class TestInfluxUpdater(unittest.TestCase):
             record = i.records[0]
             self.assertEqual(record["_value"], self.data[self.pair]["last"])
 
-    def testTransformInsertFiat(self):
-        """Test inserting timeseries into Influx"""
-        updater = InfluxUpdater(self.exchange, self.fiat_data)
-        updater._transformInsertFiat(self.fiat_measurement)
+    def testWriteFiat(self):
+        """Test inserting fiat timeseries into Influx"""
+        FiatMarketModel.measurement = self.fiat_measurement
+        updater = InfluxUpdater(self.exchange.id, self.fiat_data)
+        updater._writeFiat()
         query = f"from(bucket: \"{settings.INFLUXDB_DEFAULT_BUCKET}\") |> range(start: -1m)"
         query += f' |> filter(fn: (r) => (r._measurement == "{self.fiat_measurement}"))'
-        query += f' |> filter(fn: (r) => (r.symbol == "{self.base}"))'
+        query += f' |> filter(fn: (r) => (r.base == "{self.base}"))'
         tables = self.query_api.query(query, org=settings.INFLUXDB_ORG)
         self.assertEqual(len(tables), 1)
         for i in tables:

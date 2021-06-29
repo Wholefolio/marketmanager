@@ -1,0 +1,81 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: marketmanager-api
+  name: marketmanager-api
+  namespace: marketmanager
+spec:
+  ports:
+  - port: 8000
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: marketmanager-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: marketmanager-api
+  namespace: marketmanager
+  labels:
+    app: marketmanager-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: marketmanager-api
+  template:
+    metadata:
+      labels:
+        app: marketmanager-api
+    spec:
+      initContainers:
+      - name: dbmigrate
+        image: wholefolio/marketmanager:latest
+        command: ["sh", "-c"]
+        args: ["pipenv run python3 manage.py migrate"]
+        envFrom:
+        - configMapRef:
+            name: marketmanager
+      containers:
+      - name: marketmanager-api
+        image: wholefolio/marketmanager:latest
+        imagePullPolicy: Always
+        command: ["/bin/sh", "-c"]
+        args: ["pipenv run uwsgi configs/uwsgi.ini"]
+        resources:
+          limits:
+            cpu: 400m
+            memory: 800Mi
+          requests:
+            cpu: 50m
+            memory: 250Mi
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: marketmanager
+        livenessProbe:
+          httpGet:
+            path: /healthz/
+            port: 8000
+            httpHeaders:
+            - name: Host
+              value: marketmanager-api
+          initialDelaySeconds: 30
+          timeoutSeconds: 2
+          periodSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz/
+            port: 8000
+            httpHeaders:
+            - name: Host
+              value: marketmanager-api
+          initialDelaySeconds: 30
+          timeoutSeconds: 2
+          periodSeconds: 3
+          failureThreshold: 3

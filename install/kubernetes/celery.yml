@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: marketmanager-celery
+  labels:
+    app: marketmanager-celery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: marketmanager-celery
+  template:
+    metadata:
+      labels:
+        app: marketmanager-celery
+    spec:
+      containers:
+      - name: marketmanager-celery
+        image: wholefolio/marketmanager:latest
+        imagePullPolicy: Always
+        command: ["/bin/sh", "-c"]
+        args: ["pipenv run celery worker -A marketmanager -l info -B"]
+        resources:
+          limits:
+            cpu: 500m
+            memory: 500Mi
+          requests:
+            cpu: 250m
+            memory: 250Mi
+        envFrom:
+        - configMapRef:
+            name: marketmanager

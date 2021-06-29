@@ -47,10 +47,21 @@ class TestMarketManager(unittest.TestCase):
             os.remove(config['sock_file'])
         except FileNotFoundError:
             pass
+        if hasattr(self, "extra_exchanges"):
+            print(self.extra_exchanges)
+            for i in self.extra_exchanges:
+                obj = Exchange.objects.get(name=i)
+                obj.delete()
 
     def testInit(self):
         """Test that the DB class was created."""
         self.assertIsInstance(self.manager, MarketManager)
+
+    def testCheckEnabledExchanges_Existing(self):
+        """Test the method with just the test exchange."""
+        settings.ENABLED_EXCHANGES = [self.exchange.name]
+        self.manager._checkEnabledExchanges()
+        self.assertEqual(Exchange.objects.count(), 1)
 
     def testCheckExchange_New(self):
         """Run the checkExchange method with new exchange.

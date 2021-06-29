@@ -10,8 +10,23 @@ logger = logging.getLogger("marketmanager")
 class Client:
     """InfluxDB client"""
     def __init__(self, bucket: str = settings.INFLUXDB_DEFAULT_BUCKET):
-        self.client = InfluxDBClient(url=settings.INFLUXDB_URL, token=settings.INFLUXDB_TOKEN)
+        self.client = InfluxDBClient(url=settings.INFLUXDB_URL, token=settings.INFLUXDB_TOKEN, timeout=3000)
         self.bucket = bucket
+
+    def _build_query(self, measurement: str, time_start: str, time_stop: str = "now()",
+                     tags: list = [], drop_internal_fields: bool = True):
+        """Build InfluxDB query"""
+        query = f'from(bucket: "{self.bucket}")'
+        query += f' |> range(start: -{time_start}, stop: {time_stop})'
+        query += f' |> filter(fn: (r) => (r._measurement == "{measurement}"))'
+        if tags:
+            for tag in tags:
+                key = tag["key"]
+                value = tag["value"]
+                query += f' |> filter(fn: (r) => (r.{key} == "{value}"))'
+        if drop_internal_fields:
+            query += f' |> drop(columns: ["_start", "_stop"])'
+        return query
 
     def write(self, measurement: str, tags: list, fields: list, timestamp: bool = True):
         """Write a single timeseries point to the InfluxDB"""
@@ -25,16 +40,9 @@ class Client:
         write_api = self.client.write_api(write_options=SYNCHRONOUS)
         return write_api.write(self.bucket, settings.INFLUXDB_ORG, point)
 
-    def query(self, measurement: str, timeframe: str, tags: list = []):
+    def query(self, measurement: str, time_start: str, time_stop: str = "now()",
+              tags: list = [], drop_internal_fields: bool = False):
         """Query the InfluxDB - returns List of InfluxDB tables which contain records"""
-        # Build the query
-        query = f'from(bucket: "{self.bucket}")'
-        query += f' |> range(start: -{timeframe})'
-        query += f' |> filter(fn: (r) => (r._measurement == "{measurement}"))'
-        if tags:
-            for tag in tags:
-                key = tag["key"]
-                value = tag["value"]
-                query += f' |> filter(fn: (r) => (r.{key} == "{value}"))'
+        query = self._build_query(measurement, time_start, time_stop, tags, drop_internal_fields)
         logger.debug(f"Running query: \"{query}\"")
-        return self.client.query_api().query(query, org=settings.INFLUXDB_ORG)
+        return self.client.query_api().query(query, org=settings.INFLUXDB_ORG,)

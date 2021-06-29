@@ -1,8 +1,7 @@
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
 from api.tasks import fetch_exchange_data
-from api.models import Exchange, ExchangeStatus
+from api.models import Exchange
 
 
 class Command(BaseCommand):
@@ -15,15 +14,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Check if the exchange exists
-        queryset = Exchange.objects.filter(id=options["id"])
-        if not queryset:
+        try:
+            exchange = Exchange.objects.get(id=options["id"])
+        except Exchange.DoesNotExist:
             msg = "No exchange with that ID exists."
             return self.stdout.write(self.style.ERROR(msg))
-        exchange = queryset[0]
-        status = ExchangeStatus.objects.get(exchange=exchange)
-        status.running = True
-        status.time_started = timezone.now()
-        status.save()
         if options["celery"]:
             task_id = fetch_exchange_data.delay(exchange.id)
             msg = "Running exchange data fetch through celery. "

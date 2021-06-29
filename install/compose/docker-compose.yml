@@ -1,0 +1,69 @@
+version: "3.3"
+services:
+  db-services:
+    container_name: db-services
+    image: postgres:11
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=user
+  create_dbs:
+    image: postgres:latest
+    command: bash -c "sleep 3; export PGPASSWORD=user; psql -h db-services -U user -c 'CREATE DATABASE marketmanager;'"
+    depends_on:
+      - db-services
+
+  influxdb:
+    image: influxdb:2.0.6
+    container_name: influxdb
+    ports:
+      - '8086:8086'
+    environment:
+      DOCKER_INFLUXDB_INIT_USERNAME: influxdb
+      DOCKER_INFLUXDB_INIT_PASSWORD: influxdb
+      DOCKER_INFLUXDB_INIT_ORG: wholefolio
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_BUCKET: marketmanager
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: JCIvUyHIwmyq1u8VxkPWKW4tgEuIXXkZsSlUMZ7c9dJG8nSWqKmopxv-w450EzjajpEuLPJjknD_52CTCcRb_g==
+    
+  marketmanager-api:
+    image: marketmanager:latest
+    container_name: marketmanager-api
+    command: sh -c "sleep 6; pipenv run python3 manage.py migrate && pipenv run uwsgi ./configs/uwsgi.ini "
+    env_file: .marketmanager.env
+    ports:
+      - "10700:8000"
+    depends_on:
+      - db-services
+    links:
+      - db-services
+      - redis-marketmanager
+      - influxdb
+
+  marketmanager-daemon:
+    image: marketmanager:latest
+    container_name: marketmanager-daemon
+    command: sh -c "sleep 8; pipenv run python3 manage.py daemon start"
+    env_file: .marketmanager.env
+    depends_on:
+      - marketmanager-celery
+    links:
+      - db-services
+      - redis-marketmanager
+      - influxdb
+
+  marketmanager-celery:
+    image: marketmanager:latest
+    container_name: marketmanager-celery
+    command: sh -c "pipenv run celery -A marketmanager worker -l info -B"
+    env_file: .marketmanager.env
+    depends_on:
+      - marketmanager-api
+    links:
+      - db-services
+      - redis-marketmanager
+      - influxdb
+  redis-marketmanager:
+    image: redis:latest
+    container_name: redis-marketmanager

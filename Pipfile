@@ -1,0 +1,29 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[requires]
+python_version = '3.7'
+
+[packages]
+ccxt = "*"
+cryptography = "==3.3"
+celery = "==4.4.3"
+django = "*"
+django_rest_framework = "*"
+django_redis = "*"
+django-cors-headers = "*"
+django_filter = "*"
+django_celery_results = "==2.0"
+requests = "*"
+redis = "*"
+psycopg2 = "*"
+psycopg2-binary = "*"
+influxdb_client = "*"
+uwsgi = "*"
+daemonlib = { git = 'https://github.com/wholefolio/daemonlib.git', ref = 'v1.5.0', editable = true}
+applib = { git = 'https://github.com/wholefolio/applib.git', ref = "v1.3.3", editable = true }
+
+
+[dev-packages]

@@ -1,64 +1,68 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from django.utils import timezone
 from django.db import transaction
 from django.conf import settings
 
 from api.models import Exchange, Market
+from api.models_influx import FiatMarketModel, PairsMarketModel
 from applib.tools import appRequest
-from marketmanager.influxdb import Client as InfluxClient
+
+model_map = {
+    "fiat": FiatMarketModel,
+    "pairs": PairsMarketModel
+}
 
 
 class InfluxUpdater:
     """Handle inserts of timeseries to InfluxDB. We have 2 cases:
     * Markets were the base is in fiat
     * Markets were the base is another cryptocurrency"""
-    def __init__(self, exchange: Exchange, data: dict, task_id: str = None):
-        self.exchange = exchange
+    def __init__(self, exchange_id: int, data: dict, task_id: str = None):
+        self.exchange_id = exchange_id
         self.data = data
-        extra = {"task_id": task_id, "exchange": self.exchange}
+        extra = {"task_id": task_id, "exchange": self.exchange_id}
         self.logger = logging.getLogger("marketmanager-celery")
         self.logger = logging.LoggerAdapter(self.logger, extra)
 
-    def _insertTimeseries(self, measurement: str, data: list):
-        client = InfluxClient()
-        for current in data:
-            self.logger.debug(f"Inserting {current}.")
-            client.write(measurement, **current)
+    def _create(self, model, data):
+        obj = model_map[model](**data)
+        obj.save()
 
-    def _transformInsertFiat(self, measurement: str = settings.INFLUX_MEASUREMENT_FIAT_MARKETS):
-        """Transform the currency-fiat data to tags and fields expected by Influx"""
-        self.logger.info("Transforming fiat data for InfluxDB")
-        output = []
-        for symbol, values in self.data.items():
-            if values["quote"] != "USD":
-                # We only want values in USD
-                continue
-            output.append({
-                "tags": [{"key": "symbol", "value": values["base"]},
-                         {"key": "exchange", "value": self.exchange.id}],
-                "fields": [{"key": "price", "value": float(values["last"])}]
-            })
-        self._insertTimeseries(measurement, output)
+    def _callback(self, future):
+        exc = future.exception()
+        if exc:
+            self.logger.warning(f"Error occurred while trying to write to Influxdb. Exception: {exc}")
 
-    def _transformInsertPairs(self, measurement: str = settings.INFLUX_MEASUREMENT_PAIRS):
-        """Transform the currency pairs data to tags and fields expected by Influx"""
+    def _writeFiat(self):
+        """Write Market fiat data to Influx"""
+        self.logger.info("Writing fiat data to InfluxDB")
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            for symbol, values in self.data.items():
+                if values["quote"] not in settings.FIAT_SYMBOLS:
+                    # We only want values in our fiat currencies
+                    continue
+                values["price"] = values["last"]
+                values["currency"] = values["base"]
+                executor.submit(self._create, "fiat", values)
+        self.logger.info("Finished writing fiat data.")
+
+    def _writePairs(self):
+        """Write Market pair data to Influx"""
         self.logger.info("Transforming market pairs data for InfluxDB")
-        output = []
-        for symbol, values in self.data.items():
-            output.append({
-                "tags": [
-                    {"key": "base", "value": values["base"]},
-                    {"key": "quote", "value": values["quote"]}
-                ],
-                "fields": [{"key": "last", "value": float(values["last"])}]
-            })
-        self._insertTimeseries(measurement, output)
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            for symbol, values in self.data.items():
+                self.logger.debug(f"Working on symbol {symbol}")
+                future = executor.submit(self._create, "pairs", values)
+                future.add_done_callback(self._callback)
+        self.logger.info("Finished writing market pairs.")
 
     def write(self):
         """Write the Market data of the exchange to InfluxDB"""
-        if self.exchange.fiat_markets:
-            self._transformInsertFiat()
-        self._transformInsertPairs()
+        exchange = Exchange.objects.get(id=self.exchange_id)
+        if exchange.fiat_markets:
+            self._writeFiat()
+        self._writePairs()
 
 
 class ExchangeUpdater:
@@ -87,17 +91,19 @@ class ExchangeUpdater:
             market.save()
 
     def getLocalFiatPrices(self):
-        """Get markets which have a base of USD."""
-        base_markets = Market.objects.filter(base="USD")
+        """Get markets which have a quote in fiat."""
+        quote_markets = Market.objects.filter(quote__in=settings.FIAT_SYMBOLS)
         output = {}
         # Create a map for easier filtering
-        for market in base_markets:
-            output[market.quote] = market.last
+        for market in quote_markets:
+            output[market.base] = market.last
         return output
 
     def getBasePrices(self):
-        """Get the price list from CoinManager or from a market with a currency
-         base USD"""
+        """Get the price list from CoinManager or from a market with a currency base USD"""
+        local_data = self.getLocalFiatPrices()
+        if local_data:
+            return local_data
         url = "{}/internal/currencies/".format(settings.COIN_MANAGER_URL)
         response = appRequest("get", url)
         if "error" in response:
@@ -107,9 +113,8 @@ class ExchangeUpdater:
         if response["count"] == 0:
             # There are no entries - make a effort to get some from our local
             # markets with base USD
-            msg = "There are no currencies in CoinManager!"
-            self.logger.warning(msg)
-            return self.getLocalFiatPrices()
+            self.logger.warning("There are no currencies in CoinManager!")
+            return
         data_map = self.createCurrencyMap(response['results'])
         return data_map
 
@@ -140,8 +145,6 @@ class ExchangeUpdater:
         self.logger.info("Fetching old data...")
         current_data = Market.objects.select_for_update().filter(exchange=self.exchange)
         self.summarizeData()
-        influx_updater = InfluxUpdater(self.exchange, self.market_data, self.task_id)
-        influx_updater.write()
         if not current_data:
             self.createMarkets()
         else:
@@ -158,6 +161,7 @@ class ExchangeUpdater:
         """Create a summary of the market data we have for the exchange."""
         # Get the current prices
         currency_prices = self.getBasePrices()
+        self.logger.info(currency_prices)
         if not currency_prices:
             msg = "Can't summarize exchange data due to no currency prices"
             self.logger.error(msg)
@@ -167,6 +171,8 @@ class ExchangeUpdater:
         top_pair = ""
         for name, values in self.market_data.items():
             currency_price = currency_prices.get(values["base"], 0)
+            if not currency_price:
+                self.logger.debug("Missing fiat price for {}".format(values["base"]))
             volume_usd = values['volume'] * currency_price
             if volume_usd >= top_pair_volume:
                 top_pair = name
@@ -184,7 +190,6 @@ class ExchangeUpdater:
     def updateExchange(self):
         """Patch the exchange last updated timestamp."""
         self.logger.info("Updating exchange summary")
-        timestamp = "{}".format(timezone.now())
-        self.exchange.last_updated = timestamp
+        self.exchange.last_data_fetch = timezone.now()
         self.exchange.save()
         self.logger.info("Exchange summary update finished successfully!")

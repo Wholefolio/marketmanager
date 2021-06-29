@@ -5,6 +5,7 @@ import os
 import ccxt
 
 from api.models import Exchange, ExchangeStatus
+from marketmanager.utils import get_exchange_details
 
 
 class Command(BaseCommand):
@@ -31,10 +32,9 @@ class Command(BaseCommand):
             self.create(exc, interval)
 
     def create(self, name, interval):
-        data = self.get_exchange_details(name)
+        data = get_exchange_details(name)
         if "error" in data:
             return data["error"]
-        print(self.marketmanager_host)
         if not self.marketmanager_host:
             self.create_local(name.capitalize(), interval, data)
         else:
@@ -56,27 +56,6 @@ class Command(BaseCommand):
         url = self.marketmanager_host + "/api/exchanges/"
         response = requests.post(url, data=data)
         self.stdout.write(response.json())
-
-    def get_exchange_details(self, name):
-        """Create the data dict with the exchange name, api url and www url."""
-        try:
-            exchange_object = getattr(ccxt, name.lower())()
-        except AttributeError:
-            msg = {"error": "Not existing exchange"}
-            print(msg)
-            return msg
-        if isinstance(exchange_object.urls['api'], dict):
-            if "public" in exchange_object.urls['api']:
-                api_url = exchange_object.urls['api']['public']
-            elif "rest" in exchange_object.urls['api']:
-                api_url = exchange_object.urls['api']['rest']
-            elif "current" in exchange_object.urls['api']:
-                api_url = exchange_object.urls['api']['current']
-        else:
-            api_url = exchange_object.urls['api']
-        url = exchange_object.urls['www']
-        logo = exchange_object.urls['logo']
-        return {"api_url": api_url, "url": url, "logo": logo}
 
     def handle(self, *args, **options):
         self.marketmanager_host = None

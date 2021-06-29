@@ -32,10 +32,11 @@ class Command(BaseCommand):
         else:
             exchanges = Exchange.objects.all()
         for exchange in exchanges:
-            msg = 'ID: {}, Name: {}, Interval: {}, Enabled: {}'.format(
+            msg = 'ID: {}, Name: {}, Interval: {}, Enabled: {}, Fiat: {}'.format(
                            exchange.id, exchange.name,
                            str(datetime.timedelta(seconds=exchange.interval)),
-                           exchange.enabled)
+                           exchange.enabled,
+                           exchange.fiat_markets)
             try:
                 status = ExchangeStatus.objects.get(exchange=exchange)
                 msg += ", Last run: {}, Running: {}".format(status.last_run,

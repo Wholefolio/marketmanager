@@ -2,11 +2,13 @@
 import logging.config
 import django
 from django.utils import timezone
+from django.conf import settings
 from time import sleep
 
 from api.tasks import fetch_exchange_data
 from api.models import Exchange, ExchangeStatus
 from marketmanager.celery import app
+from marketmanager.utils import get_exchange_details
 
 
 class MarketManager(object):
@@ -25,6 +27,24 @@ class MarketManager(object):
         self.lock_file = config["lock_file"]
         self.worker_limit = int(config["threads"])
         self.logger = logging.getLogger("marketmanager")
+
+    def _checkEnabledExchanges(self):
+        self.logger.info("Checking enabled exchanges")
+        for exchange in settings.ENABLED_EXCHANGES:
+            try:
+                Exchange.objects.get(name=exchange)
+            except Exchange.DoesNotExist:
+                self.logger.info(f"Exchange {exchange} isn't added - creating...")
+                details = get_exchange_details(exchange)
+                if "error" in details:
+                    self.logger.info(details)
+                    continue
+                obj = Exchange(
+                    name=exchange,
+                    interval=settings.EXCHANGE_DEFAULT_FETCH_INTERVAL,
+                    **details
+                )
+                obj.save()
 
     def checkTaskResult(self, status):
         """Check the status of a running exchange in celery."""
@@ -90,22 +110,20 @@ class MarketManager(object):
     def getExchangeStatus(self, exc_id: int = None):
         """Get the ExchangeStatus entry(s). Wrap errors from the DB."""
         if exc_id:
-            queryset = ExchangeStatus.objects.filter(exchange_id=exc_id)
-            if not queryset:
-                statuses = ExchangeStatus.objects.create(exchange_id=exc_id)
-                statuses.save()
-            else:
-                statuses = queryset[0]
-        else:
-            statuses = ExchangeStatus.objects.filter(running=True)
+            try:
+                return ExchangeStatus.objects.get(exchange_id=exc_id)
+            except ExchangeStatus.DoesNotExist:
+                status = ExchangeStatus.objects.create(exchange_id=exc_id)
+                status.save()
+                return status
+        statuses = ExchangeStatus.objects.filter(running=True)
         try:
             # Django executes the SQL on the first invokation of the result
-            # Make sure we capture an error
             self.logger.info("Got statuses: {}".format(statuses))
         except django.db.utils.OperationalError as e:
             msg = "DB operational error. Error: {}".format(e)
             self.logger.error(msg)
-            # statuses = []
+            statuses = []
         return statuses
 
     def poller(self):
@@ -135,6 +153,7 @@ class MarketManager(object):
         2) Run checks if the exchange should be run(enabled, time)
         3) Send the request to fetch the exchange data to coiner
         """
+        self._checkEnabledExchanges()
         self.logger.info("Starting main event loop.")
         while True:
             exchanges = self.getExchanges()
