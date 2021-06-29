@@ -5,7 +5,7 @@ stages:
   - migrate
 
 variables:
-  REGISTRY: "gcr.io/positive-apex-225210/marketmanager"
+  REGISTRY: "wholefolio/marketmanager"
   POSTGRES_DB: marketmanager
   POSTGRES_USER: runner
   POSTGRES_PASSWORD: ""
