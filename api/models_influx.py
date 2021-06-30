@@ -69,7 +69,7 @@ class InfluxModel:
         for tag in self.tags:
             if tag in self.data:
                 tags.append({"key": tag, "value": self.data[tag]})
-        results = client.query(self.measurement, time_start, tags=tags, drop_internal_fields=True)
+        results = client.query(self.measurement, time_start=time_start, tags=tags, drop_internal_fields=True)
         return self._flatten_results(results)
 
     def save(self):

@@ -198,7 +198,7 @@ class TestInfluxUpdater(unittest.TestCase):
         updater._writeFiat()
         query = f"from(bucket: \"{settings.INFLUXDB_DEFAULT_BUCKET}\") |> range(start: -1m)"
         query += f' |> filter(fn: (r) => (r._measurement == "{self.fiat_measurement}"))'
-        query += f' |> filter(fn: (r) => (r.base == "{self.base}"))'
+        query += f' |> filter(fn: (r) => (r.currency == "{self.base}"))'
         tables = self.query_api.query(query, org=settings.INFLUXDB_ORG)
         self.assertEqual(len(tables), 1)
         for i in tables:

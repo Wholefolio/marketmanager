@@ -8,12 +8,13 @@ MOCK_RECORD = {
     "symbol": "BTC",
     "_field": "price",
     "_value": 25000,
-    "price": 25000
+    "price": 25000,
+    "_time": True
 }
 
 
 class MockInfluxClient:
-    def query(measurement, time_start, tags):
+    def query(measurement, time_start, tags, **kwargs):
         table = FluxTable()
         record = FluxRecord(table=0)
         record.values = MOCK_RECORD
@@ -47,19 +48,13 @@ class TestInfluxModel(unittest.TestCase):
         """Test cleaning a result from unnecessary fields"""
         record = FluxRecord(table=0)
         record.values = {"_value": 123}
-        influx_fields = ["_measurement", "_start", "_stop", "result", "table"]
+        influx_fields = ["_measurement", "_start", "_stop", "result", "table", "_time"]
         for i in influx_fields:
             record.values[i] = True
 
         result = self.model._clean_result(record)
         for i in influx_fields:
             self.assertFalse(i in result)
-
-    @patch("api.models_influx.InfluxClient")
-    def test_query(self, mock):
-        mock.return_value = MockInfluxClient
-        results = self.model.filter("1h")
-        self.assertTrue(MOCK_RECORD in results)
 
     @patch("api.models_influx.InfluxClient")
     def test_write(self, mock):

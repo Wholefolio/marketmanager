@@ -28,7 +28,7 @@ services:
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: JCIvUyHIwmyq1u8VxkPWKW4tgEuIXXkZsSlUMZ7c9dJG8nSWqKmopxv-w450EzjajpEuLPJjknD_52CTCcRb_g==
     
   marketmanager-api:
-    image: marketmanager:latest
+    image: wholefolio/marketmanager:latest
     container_name: marketmanager-api
     command: sh -c "sleep 6; pipenv run python3 manage.py migrate && pipenv run uwsgi ./configs/uwsgi.ini "
     env_file: .marketmanager.env
@@ -42,7 +42,7 @@ services:
       - influxdb
 
   marketmanager-daemon:
-    image: marketmanager:latest
+    image: wholefolio/marketmanager:latest
     container_name: marketmanager-daemon
     command: sh -c "sleep 8; pipenv run python3 manage.py daemon start"
     env_file: .marketmanager.env
@@ -54,7 +54,7 @@ services:
       - influxdb
 
   marketmanager-celery:
-    image: marketmanager:latest
+    image: wholefolio/marketmanager:latest
     container_name: marketmanager-celery
     command: sh -c "pipenv run celery -A marketmanager worker -l info -B"
     env_file: .marketmanager.env

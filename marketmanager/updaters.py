@@ -44,7 +44,8 @@ class InfluxUpdater:
                     continue
                 values["price"] = values["last"]
                 values["currency"] = values["base"]
-                executor.submit(self._create, "fiat", values)
+                future = executor.submit(self._create, "fiat", values)
+                future.add_done_callback(self._callback)
         self.logger.info("Finished writing fiat data.")
 
     def _writePairs(self):
