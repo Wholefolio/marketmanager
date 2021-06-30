@@ -29,8 +29,8 @@ unittests:
   image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
   script:
     - source .env
-    - export DB_HOSTNAME=postgres
     - source `find /root/.local/share/virtualenvs/ -name activate`
+    - sleep 120
     - python3 manage.py test --noinput
 
 linter:
@@ -53,7 +53,6 @@ integration-tests:
     ENABLED_EXCHANGES: binance,bittrex
   script:
     - source .env
-    - export DB_HOSTNAME=postgres
     - source `find /root/.local/share/virtualenvs/ -name activate`
     - python3 manage.py migrate
     - python3 manage.py integration_tests
