@@ -30,7 +30,7 @@ unittests:
   script:
     - source .env
     - export DB_HOSTNAME=postgres
-    - python3 manage.py test --noinput
+    - pipenv run python3 manage.py test --noinput
 
 linter:
   stage: test
@@ -53,13 +53,13 @@ integration-tests:
   script:
     - source .env
     - export DB_HOSTNAME=postgres
-    - python3 manage.py migrate
-    - python3 manage.py integration_tests
+    - pipenv run python3 manage.py migrate
+    - pipenv run python3 manage.py integration_tests
 
 release-image:
     stage: release
     script:
-      - docker build -t $REGISTRY:latest .
+      - docker tag marketmanager:${CI_PIPELINE_ID} $REGISTRY:latest
       - docker tag $REGISTRY:latest $REGISTRY:${CI_PIPELINE_ID}
       - docker push $REGISTRY:${CI_PIPELINE_ID}
       - docker push $REGISTRY:latest
