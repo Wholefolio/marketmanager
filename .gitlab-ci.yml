@@ -30,7 +30,8 @@ unittests:
   script:
     - source .env
     - export DB_HOSTNAME=postgres
-    - pipenv run python3 manage.py test --noinput
+    - source `find /root/.local/share/virtualenvs/ -name activate`
+    - python3 manage.py test --noinput
 
 linter:
   stage: test
@@ -53,8 +54,9 @@ integration-tests:
   script:
     - source .env
     - export DB_HOSTNAME=postgres
-    - pipenv run python3 manage.py migrate
-    - pipenv run python3 manage.py integration_tests
+    - source `find /root/.local/share/virtualenvs/ -name activate`
+    - python3 manage.py migrate
+    - python3 manage.py integration_tests
 
 release-image:
     stage: release
