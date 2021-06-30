@@ -14,7 +14,7 @@ class Client:
         self.bucket = bucket
 
     def _build_query(self, measurement: str, time_start: str, time_stop: str = "now()",
-                     tags: list = [], drop_internal_fields: bool = True):
+                     tags: list = [], drop_internal_fields: bool = False):
         """Build InfluxDB query"""
         query = f'from(bucket: "{self.bucket}")'
         query += f' |> range(start: -{time_start}, stop: {time_stop})'
