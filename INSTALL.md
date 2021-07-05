@@ -18,7 +18,7 @@ apt-get install python3-pip
 ## Prerequisites
 You must have Docker installed locally and docker-compose to bring up the containers
 ## Run
-`cd examples/compose && docker-compose up -d`
+`cd install/compose && docker-compose up -d`
 
 # Kubernetes
 To install the manifests you must have kubectl installed and prepared for your cluster

@@ -61,7 +61,8 @@ integration-tests:
 release-image:
     stage: release
     script:
-      - docker tag marketmanager:${CI_PIPELINE_ID} $REGISTRY:latest
+      - docker login -u $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN
+      - docker build -t $REGISTRY:latest .
       - docker tag $REGISTRY:latest $REGISTRY:${CI_PIPELINE_ID}
       - docker push $REGISTRY:${CI_PIPELINE_ID}
       - docker push $REGISTRY:latest
@@ -83,7 +84,6 @@ db:migrate:
      DB_HOSTNAME: "$STAGING_DB_HOST"
      DB_USERNAME: "$GCP_DB_USERNAME"
      DB_PASSWORD: "$GCP_DB_PASSWORD"
-     MARKET_MANAGER_DAEMON_PORT: 5000
    when: manual
    script:
       - python3 manage.py migrate
