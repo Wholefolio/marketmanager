@@ -32,7 +32,11 @@ def set_running_status(exchange: Exchange, running: bool):
     This function assumes the ExchangeStatus exists, otherwise it will raise the DoesNotExist exception.
     """
     logger.info(f"Updating ExchangeStatus for {exchange.id}")
-    status = ExchangeStatus.objects.get(exchange=exchange)
+    try:
+        status = ExchangeStatus.objects.get(exchange=exchange)
+    except ExchangeStatus.DoesNotExist:
+        status = ExchangeStatus(exchange=exchange)
+        status.save()
     status.running = running
     status.time_started = timezone.now()
     status.save()
