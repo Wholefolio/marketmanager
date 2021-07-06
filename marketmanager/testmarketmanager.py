@@ -98,7 +98,7 @@ class TestMarketManager(unittest.TestCase):
         False."""
         last_run = timezone.now().timestamp() - 150
         time = datetime.fromtimestamp(last_run)
-        self.status.last_run = timezone.make_aware(time)
+        self.exchange.last_data_fetch = timezone.make_aware(time)
         self.status.running = False
         self.status.save()
         run = self.manager.checkExchange(self.exchange, self.status)
@@ -111,7 +111,7 @@ class TestMarketManager(unittest.TestCase):
         False."""
         last_run = timezone.now().timestamp() - 350
         time = datetime.fromtimestamp(last_run)
-        self.status.last_run = timezone.make_aware(time)
+        self.exchange.last_data_fetch = timezone.make_aware(time)
         run = self.manager.checkExchange(self.exchange, self.status)
         self.assertTrue(run)
 
