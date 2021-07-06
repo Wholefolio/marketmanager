@@ -82,9 +82,9 @@ class MarketManager(object):
             msg = "Exchange fetch running: {}. Skipping.".format(exchange.name)
             self.logger.info(msg)
             return False
-        if status.last_run:
+        if exchange.last_data_fetch:
             current_time = timezone.now().timestamp()
-            last_run = status.last_run.timestamp()
+            last_run = exchange.last_data_fetch.timestamp()
             interval = int(exchange.interval)
             msg = "Running check for {}.".format(exchange.name)
             msg += " Last run: {},".format(last_run)

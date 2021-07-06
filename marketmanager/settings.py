@@ -48,7 +48,6 @@ for key in ENVIRONMENT:
         globals()[key] = bool_eval(value)
     else:
         globals()[key] = value
-
 SECURE_REDIRECT_EXEMPT = ["healthz", "daemon_status", "task_results",
                           "daemon_status", "exchange_statuses", "internal"]
 BROKER_URL = "redis://{}/0".format(REDIS_HOST)
@@ -67,6 +66,8 @@ CACHE_TTL = 60
 
 INFLUX_MEASUREMENT_FIAT_MARKETS = "currencies_fiat"
 INFLUX_MEASUREMENT_PAIRS = "currency_pairs"
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 if "test" in sys.argv:
     # Don't cache while testing
