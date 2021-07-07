@@ -12,7 +12,7 @@ class Health(ViewSet):
     def get(self, request):
         influx_client = Client()
         try:
-            influx_client.query(settings.INFLUX_MEASUREMENT_PAIRS, "5s")
+            influx_client.client.ready()
         except Exception as e:
             return Response({"error": f"Couldn't connect to InfluxDB. Exception: {e}"}, status=503)
         try:
