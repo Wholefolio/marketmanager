@@ -1,5 +1,4 @@
 # MarketManager - application for harvesting Crypto Exchange data(Bittrex, Binance, Coinbase, etc)
-[![pipeline status](https://gitlab.com/cryptohunters/marketmanager/badges/master/pipeline.svg)](https://gitlab.com/wholefolio/marketmanager/commits/master)  
 The marketmanager is a project used to collect and store market data from various exchanges based on the administrator's preferences. The data is exposed via a REST interface and can be queried and fetched from it.  
 We have built and use it at [Wholefolio](https://wholefolio.io) as a backbone for our data gathering and analytics services.
 
