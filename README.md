@@ -1,11 +1,16 @@
 # MarketManager - application for harvesting Crypto Exchange data(Bittrex, Binance, Coinbase, etc)
 [![pipeline status](https://gitlab.com/cryptohunters/marketmanager/badges/master/pipeline.svg)](https://gitlab.com/cryptohunters/marketmanager/commits/master)  
-The market manager app has 3 different aspects to its workings - the REST API, the daemon and Celery(the task executor).
+The marketmanager is a project used to collect and store market data from various exchanges based on the administrator's preferences. The data is exposed via a REST interface and can be queried and fetched from it.  
+We have built and use it at [Wholefolio](https://wholefolio.io) as a backbone for our data gathering and analytics services.
+
+# Disclaimer
+This project can be used under the MIT license and we (Wholefolio) provide it AS IS. Issues and Merge requests are welcome, please check out our [Contributions page](./CONTRIBUTE.md). This project is hosted in Gitlab due to the CI/CD pipeline and mirrored in Github. Issues/Bugs will be reviewed in both places. Pull/Merge requests MUST be opened in Gitlab.
 
 # Installation
-[Installation odcs](./INSTALL.md)
+[Installation docs](./INSTALL.md)
 
 # Application management:  
+The market manager app has 3 different aspects to its workings - the REST API, the daemon and Celery(the task executor).
 1. The daemon is managed via the django manage.py entry point in the root directory. It has 4 parameters - start/stop/restart/status.  
 Examples:  
 ```python3 manage.py daemon start``` - start the daemon.  
