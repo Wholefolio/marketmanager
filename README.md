@@ -4,7 +4,7 @@ The marketmanager is a project used to collect and store market data from variou
 We have built and use it at [Wholefolio](https://wholefolio.io) as a backbone for our data gathering and analytics services.
 
 # Disclaimer
-This project can be used under the MIT license and we (Wholefolio) provide it AS IS. Issues and Merge requests are welcome, please check out our [Contributions page](./CONTRIBUTE.md). This project is hosted in Gitlab due to the CI/CD pipeline and mirrored in Github. Issues/Bugs will be reviewed in both places. Pull/Merge requests MUST be opened in Gitlab.
+This project can be used under the Apache v2 license and we (Wholefolio) provide it AS IS. Issues and Merge requests are welcome, please check out our [Contributions page](./CONTRIBUTE.md). This project is hosted in Gitlab due to the CI/CD pipeline and mirrored in Github. Issues/Bugs will be reviewed in both places. Pull/Merge requests MUST be opened in Gitlab.
 
 # Installation
 [Installation docs](./INSTALL.md)
