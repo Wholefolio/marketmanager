@@ -15,14 +15,6 @@ class InfluxModel:
         self.data = kwargs
         self.validated_data = {"tags": [], "fields": []}
 
-    @staticmethod
-    def get_fields(cls):
-        return cls.fields
-
-    @staticmethod
-    def get_tags(cls):
-        return cls.tags
-
     def _validate(self):
         """Validate the tags and fields in the class are present in the data"""
         for tag in self.tags:
@@ -62,14 +54,15 @@ class InfluxModel:
                 output.append(clean_result)
         return output
 
-    def filter(self, time_start: str, time_stop: str = None):
+    def filter(self, time_start: str, time_stop: str = "now()"):
         """Query Influx based on the tags from the object"""
         client = InfluxClient()
         tags = []
         for tag in self.tags:
             if tag in self.data:
                 tags.append({"key": tag, "value": self.data[tag]})
-        results = client.query(self.measurement, time_start=time_start, tags=tags, drop_internal_fields=True)
+        results = client.query(self.measurement, time_start=time_start, time_stop=time_stop, tags=tags,
+                               drop_internal_fields=True)
         return self._flatten_results(results)
 
     def save(self):
