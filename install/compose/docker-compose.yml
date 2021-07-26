@@ -33,7 +33,7 @@ services:
     command: sh -c "sleep 6; pipenv run python3 manage.py migrate && pipenv run uwsgi ./configs/uwsgi.ini "
     env_file: .marketmanager.env
     ports:
-      - "10700:8000"
+      - "8000:8000"
     depends_on:
       - db-services
     links:

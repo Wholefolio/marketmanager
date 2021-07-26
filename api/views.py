@@ -13,7 +13,6 @@ from django.views.decorators.cache import cache_page
 from django_celery_results.models import TaskResult
 from django.urls import reverse
 
-
 from applib.daemonclient import Client
 from api import models
 from api import serializers
@@ -24,9 +23,9 @@ from api.tasks import fetch_exchange_data
 CACHE_TTL = getattr(settings, 'CACHE_TTL', 120)
 
 
-def get_request_id(exchange_name):
-    """Create a request ID using the exchange_name and current time."""
-    to_hash = "{}{}".format(time.time(), exchange_name)
+def get_request_id(base_name):
+    """Create a request ID a base name and current time."""
+    to_hash = "{}{}".format(time.time(), base_name)
     request_id = hashlib.sha224(to_hash.encode('utf-8')).hexdigest()[:15]
     return request_id
 
@@ -37,9 +36,8 @@ class DaemonStatus(ViewSet):
     def list(self, request):
         """Get the status of marketmanager daemon."""
         try:
-            connection = (settings.MARKET_MANAGER_DAEMON_HOST,
-                          int(settings.MARKET_MANAGER_DAEMON_PORT))
-            client = Client(connection)
+            addr = (settings.MARKET_MANAGER_DAEMON_HOST, int(settings.MARKET_MANAGER_DAEMON_PORT))
+            client = Client(addr)
             client.connect()
             output = client.getStatus(get_request_id('status'))
             return Response(output, status=status.HTTP_200_OK)
@@ -61,14 +59,11 @@ class ExchangeRun(ViewSet):
             return Response(msg, status=status.HTTP_400_BAD_REQUEST)
         task_id = fetch_exchange_data.delay(exchange_id)
         if task_id:
-            output = "MarketManager has accepted exchange run. "
-            output += "Task: http://{}{}?task_id={}".format(host, path,
-                                                            task_id)
-            return Response(output, status=status.HTTP_200_OK)
-        else:
-            msg = {"error":
-                   "No task created for exchange id: {}".format(exchange_id)}
-            return Response(msg, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            response = "MarketManager has accepted exchange run. "
+            response += "Task: http://{}{}?task_id={}".format(host, path, task_id)
+            return Response(response, status=status.HTTP_200_OK)
+        msg = {"error": "No task created for exchange id: {}".format(exchange_id)}
+        return Response(msg, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 class ExchangeViewSet(ReadOnlyModelViewSet):
@@ -97,7 +92,7 @@ class MarketViewSet(ReadOnlyModelViewSet):
         return super(MarketViewSet, self).dispatch(*args, **kwargs)
 
 
-class MarketHistoricalData(ReadOnlyModelViewSet):
+class MarketHistoricalData(ViewSet):
     """Endpoint for market historical data from InfluxDB"""
 
     def list(self, request, ):
