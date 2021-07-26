@@ -17,7 +17,7 @@ class InfluxModel:
 
     def _validate(self):
         """Validate the tags and fields in the class are present in the data"""
-        for tag in self.get_tags():
+        for tag in self.tags:
             if tag not in self.data:
                 raise ValueError(f"Missing required tag {tag}")
             else:

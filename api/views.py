@@ -1,8 +1,7 @@
 """API views."""
 import hashlib
 import time
-from rest_framework.viewsets import (ViewSet, GenericViewSet,
-                                     ReadOnlyModelViewSet)
+from rest_framework.viewsets import (ViewSet, ReadOnlyModelViewSet)
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.filters import OrderingFilter
@@ -126,17 +125,8 @@ class ExchangeStatusViewSet(ReadOnlyModelViewSet):
     ordering_fields = ('name', 'volume', 'top_pair_volume', 'top_pair')
 
 
-class TaskResults(GenericViewSet):
+class TaskResults(ReadOnlyModelViewSet):
     queryset = TaskResult.objects.all()
     filter_class = filters.TaskResultFilter
     serializer_class = serializers.TaskResultSerializer
     filter_backends = (DjangoFilterBackend, )
-
-    def list(self, request, *args, **kwargs):
-        user_data = self.filter_queryset(queryset=self.queryset)
-        page = self.paginate_queryset(user_data)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(user_data, many=True)
-        return Response(serializer.data)
