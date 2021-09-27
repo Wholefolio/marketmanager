@@ -81,7 +81,8 @@ def parse_market_data(data: dict, exchange_id: int):
             base, quote = symbol.split("/")
         name = "{}-{}".format(base, quote)
         # Set them to 0 as there might be nulls
-        temp = {"last": 0, "bid": 0, "ask": 0, "baseVolume": 0}
+        temp = {"last": 0, "bid": 0, "ask": 0, "high": 0, "low": 0, "open": 0, "close": 0,
+                "baseVolume": 0}
         for item in temp.keys():
             if values.get(item):
                 temp[item] = values[item]
@@ -90,6 +91,10 @@ def parse_market_data(data: dict, exchange_id: int):
                              "last": temp["last"],
                              "bid": temp["bid"],
                              "ask": temp["ask"],
+                             "high": temp["high"],
+                             "low": temp["low"],
+                             "open": temp["open"],
+                             "close": temp["close"],
                              "volume": temp["baseVolume"],
                              "exchange_id": exchange_id
                              }
