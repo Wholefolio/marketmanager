@@ -56,6 +56,21 @@ class TestInfluxModel(unittest.TestCase):
         for i in influx_fields:
             self.assertFalse(i in result)
 
+    def test_flatten_result(self):
+        """Test the flatten results method"""
+        tables = []
+        for i in range(10):
+            t = FluxTable()
+            r = FluxRecord(table=0)
+            r.values = MOCK_RECORD
+            t.records = [r]
+            tables.append(
+                t
+            )
+        output = self.model._flatten_results(tables)
+        for i in output:
+            self.assertFalse(isinstance(i, list))
+
     @patch("api.models_influx.InfluxClient")
     def test_write(self, mock):
         mock.return_value = MockInfluxClient
