@@ -42,7 +42,7 @@ class ListViewSet(InfluxGenericViewSet):
         return tags
 
     def list(self, request):
-        timerange = request.GET
+        timerange = request.GET["timerange"]
         tags = self.generate_tags(request)
         dataset = self.model(**tags).filter(timerange)
         return Response(dataset)

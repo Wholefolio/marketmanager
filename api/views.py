@@ -18,6 +18,7 @@ from api import serializers
 from api import filters
 from api import models_influx
 from api.tasks import fetch_exchange_data
+from api.views_influx import ListViewSet as InfluxListViewSet
 
 CACHE_TTL = getattr(settings, 'CACHE_TTL', 120)
 
@@ -91,28 +92,11 @@ class MarketViewSet(ReadOnlyModelViewSet):
         return super(MarketViewSet, self).dispatch(*args, **kwargs)
 
 
-class MarketHistoricalData(ViewSet):
+class MarketHistoricalData(InfluxListViewSet):
     """Endpoint for market historical data from InfluxDB"""
-
-    def list(self, request, ):
-        if ("base" not in request.GET and "quote" not in request.GET)\
-           or "timerange" not in request.GET:
-            return Response(
-                {"error": "Missing required parameters - exchange_id/quote and timerange"},
-                status=400
-            )
-        tags = {}
-        timerange = request.GET.get("timerange")
-        for i in ["exchange_id", "quote", "base"]:
-            value = request.GET.get(i)
-            if value:
-                try:
-                    value = int(value)
-                except ValueError:
-                    pass
-                tags[i] = value
-        data = models_influx.PairsMarketModel(**tags).filter(timerange)
-        return Response(data)
+    additional_filter_params = ["exchange_id", "time_end"]
+    required_filter_params = ["base", "quote", "time_start"]
+    influx_model = models_influx.PairsMarketModel
 
 
 class ExchangeStatusViewSet(ReadOnlyModelViewSet):
