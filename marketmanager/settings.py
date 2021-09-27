@@ -102,7 +102,7 @@ REST_FRAMEWORK = {
         'rest_framework.pagination.LimitOffsetPagination',
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',),
-    'PAGE_SIZE': 10000
+    'PAGE_SIZE': 1000
 }
 # Application definition
 INSTALLED_APPS = [
