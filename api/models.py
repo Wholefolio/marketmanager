@@ -41,6 +41,10 @@ class Market(models.Model):
     last = models.FloatField()
     bid = models.FloatField()
     ask = models.FloatField()
+    open = models.FloatField(default=0)
+    close = models.FloatField(default=0)
+    high = models.FloatField(default=0)
+    low = models.FloatField(default=0)
     updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
