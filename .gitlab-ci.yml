@@ -86,4 +86,4 @@ db:migrate:
      DB_PASSWORD: "$GCP_DB_PASSWORD"
    when: manual
    script:
-      - python3 manage.py migrate
+      - pipenv run python3 manage.py migrate
