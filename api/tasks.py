@@ -60,6 +60,7 @@ def fetch_exchange_data(self, exchange_id: int):
     update_data = utils.parse_market_data(data, exchange_id)
     # Create/update the data
     logger.info("Starting updaters.")
+    result = None
     try:
         influx_data = deepcopy(update_data)
         influx_updater = InfluxUpdater(exchange_id, influx_data, self.request.id)
