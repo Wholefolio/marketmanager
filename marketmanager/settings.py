@@ -99,10 +99,10 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS':
         ('django_filters.rest_framework.DjangoFilterBackend',),
     'DEFAULT_PAGINATION_CLASS':
-        'rest_framework.pagination.LimitOffsetPagination',
+        'rest_framework.pagination.PageNumberPagination',
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',),
-    'PAGE_SIZE': 1000
+    'PAGE_SIZE': 100
 }
 # Application definition
 INSTALLED_APPS = [

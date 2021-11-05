@@ -4,8 +4,7 @@ from django.utils import timezone
 from django.db import transaction
 from django.conf import settings
 
-from api.models import Exchange, Market
-from api.models_influx import FiatMarketModel, PairsMarketModel
+from api.models import Exchange, Market, FiatMarketModel, PairsMarketModel
 from applib.tools import appRequest
 
 model_map = {
@@ -26,7 +25,7 @@ class InfluxUpdater:
         self.logger = logging.LoggerAdapter(self.logger, extra)
 
     def _create(self, model, data):
-        obj = model_map[model](**data)
+        obj = model_map[model](data=data)
         obj.save()
 
     def _callback(self, future):
@@ -124,8 +123,7 @@ class ExchangeUpdater:
         for market in current_data:
             # Check if the name is in the market data - if yes update it
             if market.name in self.market_data:
-                msg = "Found match in market_data. {}".format(
-                                                self.market_data[market.name])
+                msg = "Found match in market_data. {}".format(self.market_data[market.name])
                 self.logger.debug(msg)
                 for key, value in self.market_data[market.name].items():
                     if key != "exchange_id":

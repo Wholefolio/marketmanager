@@ -1,6 +1,7 @@
 """API models."""
 from django.db import models
 from django.conf import settings
+from django_influxdb.models import InfluxModel
 
 
 class Exchange(models.Model):
@@ -79,3 +80,24 @@ class ExchangeStatus(models.Model):
     class Meta():
         """Define the db table name."""
         db_table = "exchange_status"
+
+
+class FiatMarketModel(InfluxModel):
+    required_influx_tags = ["currency"]
+    optional_influx_tags = ["exchange_id"]
+    sorting_tags = ["time_start", "currency", "exchange_id"]
+    fields = [
+        {"name": "price", "type": float},
+    ]
+    measurement = settings.INFLUX_MEASUREMENT_FIAT_MARKETS
+    bucket = settings.INFLUXDB_DEFAULT_BUCKET
+
+
+class PairsMarketModel(InfluxModel):
+    required_influx_tags = ["base", "quote"]
+    optional_influx_tags = ["exchange_id", "ask", "bid", "open", "close", "high", "low"]
+    fields = [
+        {"name": "last", "type": float}
+    ]
+    measurement = settings.INFLUX_MEASUREMENT_PAIRS
+    bucket = settings.INFLUXDB_DEFAULT_BUCKET

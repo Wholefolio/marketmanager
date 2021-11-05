@@ -2,7 +2,7 @@ import logging
 from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 
-from marketmanager.influxdb import Client
+from django_influxdb.influxdb import Client
 from api.models import Exchange
 logger = logging.getLogger("marketmanager")
 
