@@ -39,7 +39,6 @@ unittests:
   script:
     - source .env
     - source `find /root/.local/share/virtualenvs/ -name activate`
-    - sleep 120
     - python3 manage.py test --noinput
 
 linter:

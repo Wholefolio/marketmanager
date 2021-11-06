@@ -9,7 +9,7 @@ logger = logging.getLogger("marketmanager")
 
 class Health(ViewSet):
     def get(self, request):
-        influx_client = Client()
+        influx_client = Client(measurement="healthcheck")
         try:
             influx_client.client.ready()
         except Exception as e:
