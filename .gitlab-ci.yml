@@ -25,7 +25,8 @@ build-image:
     stage: build
     script:
       - docker login -u $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN
-      - docker build -t $REGISTRY:latest .
+      - docker build -t $REGISTRY:test .
+      - docker push $REGISTRY:test
 
 unittests:
   stage: test
@@ -34,7 +35,7 @@ unittests:
   - influxdb:2.0.6
   tags:
    - docker
-  image: $REGISTRY:latest
+  image: $REGISTRY:test
   script:
     - source .env
     - source `find /root/.local/share/virtualenvs/ -name activate`
@@ -45,7 +46,7 @@ linter:
   stage: test
   tags:
     - docker
-  image: $REGISTRY:latest
+  image: $REGISTRY:test
   script:
     - pip3 install flake8 && flake8 --exclude="*migrations*,manage.py" --max-line-length=110
 
@@ -56,7 +57,7 @@ integration-tests:
     - influxdb:2.0.6
   tags:
     - docker
-  image: $REGISTRY:latest
+  image: $REGISTRY:test
   variables:
     ENABLED_EXCHANGES: binance,bittrex
   script:
@@ -69,7 +70,8 @@ release-image:
     stage: release
     script:
       - docker login -u $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN
-      - docker tag $REGISTRY:latest $REGISTRY:${CI_PIPELINE_ID}
+      - docker pull $REGISTRY:test
+      - docker tag $REGISTRY:test $REGISTRY:${CI_PIPELINE_ID}
       - docker push $REGISTRY:${CI_PIPELINE_ID}
       - docker push $REGISTRY:latest
 
