@@ -24,7 +24,7 @@ influxdb_client = "*"
 uwsgi = "*"
 daemonlib = { git = 'https://github.com/wholefolio/daemonlib.git', ref = 'v1.5.0', editable = true}
 applib = { git = 'https://github.com/wholefolio/applib.git', ref = "v1.3.3", editable = true }
-django_influxdb = { git = 'https://github.com/wholefolio/django-influxdb.git', ref = "v0.1.1", editable = true }
+django_influxdb = { git = 'https://github.com/wholefolio/django-influxdb.git', ref = "v0.1.2", editable = true }
 
 
 [dev-packages]
