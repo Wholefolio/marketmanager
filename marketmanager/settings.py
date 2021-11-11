@@ -114,7 +114,7 @@ INSTALLED_APPS = [
     'django_celery_results',
     'django_filters',
     'daemon',
-    "django_influxdb",
+    # "django_influxdb",
     'api',
 ]
 
