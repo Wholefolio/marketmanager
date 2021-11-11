@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "3678292aeb7a2b2da30e7a079b62736c15c172ca13f9f715293422e3120a2629"
+            "sha256": "95b93b6694149a78ea62c91114ebe6ac61afc66ff110bbd0c3fac13018a9abbb"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -113,11 +113,11 @@
         },
         "ccxt": {
             "hashes": [
-                "sha256:7a8e5504495242777c2855d44c993d748860fd565b879b624162d76a5eac5796",
-                "sha256:99542c761f0dc6c4e972a17471782dc559561304d01c14475617558d94e20789"
+                "sha256:60cbce616e0ea2207dd5bd1e8256c5dd3bd74055b9b89fe26609866256d39368",
+                "sha256:e2ad8e721ffc513f06f9e69cba60ca12f2925fec5011903667cc35f6ebde9f9e"
             ],
             "index": "pypi",
-            "version": "==1.60.65"
+            "version": "==1.60.90"
         },
         "celery": {
             "hashes": [
@@ -265,7 +265,7 @@
         "django-influxdb": {
             "editable": true,
             "git": "https://github.com/wholefolio/django-influxdb.git",
-            "ref": "49d1ba3cc9dab7913ef0d2b8d78a840444778131"
+            "ref": "51f005a1e9b084499a59bec85d62fdaefcc0ab0d"
         },
         "django-redis": {
             "hashes": [
@@ -307,11 +307,11 @@
         },
         "importlib-metadata": {
             "hashes": [
-                "sha256:b618b6d2d5ffa2f16add5697cf57a46c76a56229b0ed1c438322e4e95645bd15",
-                "sha256:f284b3e11256ad1e5d03ab86bb2ccd6f5339688ff17a4d797a0fe7df326f23b1"
+                "sha256:53ccfd5c134223e497627b9815d5030edf77d2ed573922f7a0b8f8bb81a1c100",
+                "sha256:75bdec14c397f528724c1bfd9709d660b33a4d2e77387a3358f20b848bb5e5fb"
             ],
             "markers": "python_version < '3.8'",
-            "version": "==4.8.1"
+            "version": "==4.8.2"
         },
         "influxdb-client": {
             "hashes": [
