@@ -85,10 +85,11 @@ class ExchangeStatus(models.Model):
 class FiatMarketModel(InfluxModel):
     required_influx_tags = ["currency"]
     optional_influx_tags = ["exchange_id"]
-    sorting_tags = ["time_start", "currency", "exchange_id"]
+    sorting_tags = ["_time"]
     fields = [
         {"name": "price", "type": float},
     ]
+    drop_fields = ["exchange_id"]  # Dropping the exchange ID allows aggregation on all exchanges
     measurement = settings.INFLUX_MEASUREMENT_FIAT_MARKETS
     bucket = settings.INFLUXDB_DEFAULT_BUCKET
 
@@ -96,6 +97,7 @@ class FiatMarketModel(InfluxModel):
 class PairsMarketModel(InfluxModel):
     required_influx_tags = ["base", "quote"]
     optional_influx_tags = ["exchange_id", "ask", "bid", "open", "close", "high", "low"]
+    sorting_tags = ["_time"]
     fields = [
         {"name": "last", "type": float}
     ]
