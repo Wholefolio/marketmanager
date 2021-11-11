@@ -8,7 +8,7 @@ COPY . /marketmanager/
 
 WORKDIR /marketmanager
 
-RUN pip3 install pipenv && pipenv install
+RUN pip3 install pipenv && pipenv lock --pre --clear && pipenv install
 
 RUN apk del gcc g++
 
