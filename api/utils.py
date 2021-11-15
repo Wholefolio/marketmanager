@@ -71,7 +71,13 @@ def parse_market_data(data: dict, exchange_id: int):
     for symbol, values in data.items():
         symbol_found = False
         if values.get('symbol'):
-            base, quote = values['symbol'].split("/")
+            if "/" in values['symbol']:
+                split_symbol = "/"
+            elif "-" in values['symbol']:
+                split_symbol = "-"
+            elif "_" in values['symbol']:
+                split_symbol = "_"
+            base, quote = values['symbol'].split(split_symbol)
             symbol_found = True
         elif values.get('info'):
             if "symbol" in values["info"]:
