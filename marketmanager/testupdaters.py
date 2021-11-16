@@ -95,7 +95,7 @@ class TestExchangeUpdater(unittest.TestCase):
         data_map = {"ICX": 6, "BNB": 10}
         mock_result.return_value = data_map
         self.updater.summarizeData()
-        quote = self.data["ICX-BNB"]["base"]
+        quote = self.data["ICX-BNB"]["quote"]
         exchange_volume = self.data["ICX-BNB"]["volume"] * data_map[quote] * self.last
         exchange = Exchange.objects.get(name="Test")
         self.assertEqual(exchange.volume, exchange_volume)
@@ -168,7 +168,7 @@ class TestInfluxUpdater(unittest.TestCase):
         # Delete the data from influx
         for i in [self.pair_measurement, self.fiat_measurement]:
             delete_api.delete(
-                start=timezone.now()-timezone.timedelta(hours=1),
+                start=timezone.now() - timezone.timedelta(hours=1),
                 stop=timezone.now(),
                 predicate=f"_measurement=\"{i}\"",
                 bucket=settings.INFLUXDB_DEFAULT_BUCKET,
