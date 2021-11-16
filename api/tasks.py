@@ -1,5 +1,6 @@
 import ccxt
 import logging
+import traceback
 from copy import deepcopy
 from django.db.utils import OperationalError
 from django_celery_results.models import TaskResult
@@ -67,8 +68,9 @@ def fetch_exchange_data(self, exchange_id: int):
         influx_updater.write()
         updater = ExchangeUpdater(exchange_id, update_data, self.request.id)
         result = updater.run()
-    except Exception:
-        logger.critical("Critical failure within updaters - check logs")
+    except Exception as e:
+        traceback.print_exc()
+        logger.critical("Critical failure within updaters - check logs. Exception: {}".format(e))
     set_running_status(exchange, running=False)
     return result
 
