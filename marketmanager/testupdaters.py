@@ -22,7 +22,7 @@ class TestExchangeUpdater(unittest.TestCase):
     def setUp(self):
         self.exchange = Exchange(name="Test", interval=300)
         self.exchange.save()
-        self.last
+        self.last = 15
         self.data = {"ICX-BNB": {'base': 'BNB', 'quote': 'ICX', 'last': self.last,
                                  'bid': 0, 'ask': 0, 'volume': 50,
                                  'exchange_id': self.exchange.id}}

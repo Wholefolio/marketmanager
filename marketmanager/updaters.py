@@ -160,7 +160,7 @@ class ExchangeUpdater:
         """Create a summary of the market data we have for the exchange."""
         # Get the current prices
         currency_prices = self.getBasePrices()
-        self.logger.info("Base prices: ", currency_prices)
+        self.logger.info(f"Base prices: {currency_prices}")
         if not currency_prices:
             msg = "Can't summarize exchange data due to no currency prices"
             self.logger.error(msg)
