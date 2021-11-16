@@ -22,7 +22,8 @@ class TestExchangeUpdater(unittest.TestCase):
     def setUp(self):
         self.exchange = Exchange(name="Test", interval=300)
         self.exchange.save()
-        self.data = {"ICX-BNB": {'base': 'BNB', 'quote': 'ICX', 'last': 15,
+        self.last
+        self.data = {"ICX-BNB": {'base': 'BNB', 'quote': 'ICX', 'last': self.last,
                                  'bid': 0, 'ask': 0, 'volume': 50,
                                  'exchange_id': self.exchange.id}}
         self.updater = ExchangeUpdater(self.exchange.id, self.data)
@@ -95,7 +96,7 @@ class TestExchangeUpdater(unittest.TestCase):
         mock_result.return_value = data_map
         self.updater.summarizeData()
         quote = self.data["ICX-BNB"]["base"]
-        exchange_volume = self.data["ICX-BNB"]["volume"] * data_map[quote]
+        exchange_volume = self.data["ICX-BNB"]["volume"] * data_map[quote] * self.last
         exchange = Exchange.objects.get(name="Test")
         self.assertEqual(exchange.volume, exchange_volume)
         self.assertEqual(exchange.top_pair, "ICX-BNB")

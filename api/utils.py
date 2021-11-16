@@ -41,11 +41,12 @@ def fetch_tickers(ccxt_exchange: exchange, exchange: ExchangeModel):
                 except (errors.DDoSProtection, errors.RequestTimeout):
                     break
         elif ccxt_exchange.has.get("fetchMarkets"):
-            logger.info("Exchange {} does have the fetchMarkets method".format(name))
+            logger.info("Exchange {} has the fetchMarkets method".format(name))
             markets = ccxt_exchange.fetchMarkets()
             for market in markets:
                 # We only want USD markets if the exchange is fiat
                 if market["quote"] not in settings.FIAT_SYMBOLS and exchange.fiat_markets:
+                    logger.debug("Skipping {}".format(market))
                     continue
                 market_name = market["symbol"]
                 try:
