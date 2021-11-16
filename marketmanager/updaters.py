@@ -160,7 +160,7 @@ class ExchangeUpdater:
         """Create a summary of the market data we have for the exchange."""
         # Get the current prices
         currency_prices = self.getBasePrices()
-        self.logger.info(currency_prices)
+        self.logger.info("Base prices: ", currency_prices)
         if not currency_prices:
             msg = "Can't summarize exchange data due to no currency prices"
             self.logger.error(msg)
@@ -169,10 +169,11 @@ class ExchangeUpdater:
         top_pair_volume = 0
         top_pair = ""
         for name, values in self.market_data.items():
-            currency_price = currency_prices.get(values["base"], 0)
+            currency_price = currency_prices.get(values["quote"], 0)
             if not currency_price:
-                self.logger.debug("Missing fiat price for {}".format(values["base"]))
-            volume_usd = values['volume'] * currency_price
+                self.logger.debug("Missing fiat price for {}".format(values["quote"]))
+                continue
+            volume_usd = values['volume'] * currency_price * values['last']
             if volume_usd >= top_pair_volume:
                 top_pair = name
                 top_pair_volume = volume_usd

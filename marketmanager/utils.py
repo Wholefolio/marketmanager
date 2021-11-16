@@ -20,6 +20,8 @@ def get_exchange_details(name):
             api_url = exchange_object.urls['api']['rest']
         elif "current" in exchange_object.urls['api']:
             api_url = exchange_object.urls['api']['current']
+        else:
+            api_url = None
     else:
         api_url = exchange_object.urls['api']
     url = exchange_object.urls['www']
