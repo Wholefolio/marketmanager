@@ -86,11 +86,9 @@ class MarketManager(object):
             current_time = timezone.now().timestamp()
             last_run = exchange.last_data_fetch.timestamp()
             interval = int(exchange.interval)
-            msg = "Running check for {}.".format(exchange.name)
-            msg += " Last run: {},".format(last_run)
-            msg += " Interval: {},".format(interval)
-            msg += " Current time: {}".format(current_time)
-            msg += " Delta: {}".format(current_time-last_run)
+            msg = f"Running check for {exchange.name}."
+            msg += f" Last run: {last_run}, Interval: {interval}, Current time: {current_time}, "
+            msg += " Delta: {}".format(current_time - last_run)
             self.logger.debug(msg)
             if last_run + interval >= current_time:
                 return False
@@ -136,9 +134,7 @@ class MarketManager(object):
                 continue
             for status in statuses:
                 if not status.last_run_id:
-                    msg = "Missing last run id for exchange [{}]".format(
-                                                              status.exchange)
-                    self.logger.info(msg)
+                    self.logger.info(f"Missing last run id for exchange [{status.exchange}]")
                     continue
                 self.checkTaskResult(status)
             msg = "Finished running through all exchanges."

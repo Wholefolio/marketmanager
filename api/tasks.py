@@ -66,11 +66,15 @@ def fetch_exchange_data(self, exchange_id: int):
         influx_data = deepcopy(update_data)
         influx_updater = InfluxUpdater(exchange_id, influx_data, self.request.id)
         influx_updater.write()
+    except Exception as e:
+        traceback.print_exc()
+        logger.critical("Influx updater failed. Exception: {}".format(e))
+    try:
         updater = ExchangeUpdater(exchange_id, update_data, self.request.id)
         result = updater.run()
     except Exception as e:
         traceback.print_exc()
-        logger.critical("Critical failure within updaters - check logs. Exception: {}".format(e))
+        logger.critical("DB updater failed. Exception: {}".format(e))
     set_running_status(exchange, running=False)
     return result
 

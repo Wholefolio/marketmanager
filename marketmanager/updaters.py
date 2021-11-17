@@ -160,16 +160,18 @@ class ExchangeUpdater:
         """Create a summary of the market data we have for the exchange."""
         # Get the current prices
         currency_prices = self.getBasePrices()
-        self.logger.info(f"Base prices: {currency_prices}")
+        self.logger.debug(f"Base prices: {currency_prices}")
         if not currency_prices:
-            msg = "Can't summarize exchange data due to no currency prices"
-            self.logger.error(msg)
+            self.logger.error("Can't summarize exchange data due to no currency prices")
             return
         exchange_volume = 0
         top_pair_volume = 0
         top_pair = ""
         for name, values in self.market_data.items():
-            currency_price = currency_prices.get(values["quote"], 0)
+            if values['quote'] not in settings.FIAT_SYMBOLS:
+                currency_price = currency_prices.get(values["quote"], 0)
+            else:
+                currency_price = 1
             if not currency_price:
                 self.logger.debug("Missing fiat price for {}".format(values["quote"]))
                 continue
