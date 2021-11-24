@@ -87,7 +87,6 @@ class TestExchangeUpdater(unittest.TestCase):
         # Check if the market has been created
         self.assertEqual(len(markets), 1)
         # Check if the exchange has been updated
-        print(Exchange.objects.all()[0])
         self.assertTrue(Exchange.objects.get(name=self.exchange.name).last_data_fetch)
 
     @patch("marketmanager.updaters.ExchangeUpdater.getBasePrices")
@@ -151,7 +150,7 @@ class TestInfluxUpdater(unittest.TestCase):
         self.data = {self.pair: {'base': self.base, 'quote': self.quote, 'last': 15.0,
                                  'bid': 0, 'ask': 0, 'volume': 50,
                                  'exchange_id': self.exchange.id}}
-        self.fiat_data = {"BNBTEST-USD": {
+        self.fiat_data = {self.fiatpair: {
             'base': 'BNBTEST', 'quote': 'USD', 'last': 150.0,
             'bid': 0, 'ask': 0, 'volume': 50,
             'exchange_id': self.exchange.id
@@ -178,9 +177,9 @@ class TestInfluxUpdater(unittest.TestCase):
         """Test that the Updater class was created."""
         self.assertIsInstance(self.updater, InfluxUpdater)
 
-    def testWritePairs(self):
+    def test_write_pairs(self):
         """Test inserting pair timeseries into Influx"""
-        self.updater._writePairs()
+        self.updater._write_pairs()
         query = f"from(bucket: \"{settings.INFLUXDB_DEFAULT_BUCKET}\") |> range(start: -1m)"
         query += f' |> filter(fn: (r) => (r._measurement == "{self.pair_measurement}"))'
         query += f' |> filter(fn: (r) => (r.quote == "{self.quote}"))'
@@ -192,11 +191,12 @@ class TestInfluxUpdater(unittest.TestCase):
             record = i.records[0]
             self.assertEqual(record["_value"], self.data[self.pair]["last"])
 
-    def testWriteFiat(self):
+    def test_write_fiat(self):
         """Test inserting fiat timeseries into Influx"""
         FiatMarketModel.measurement = self.fiat_measurement
         updater = InfluxUpdater(self.exchange.id, self.fiat_data)
-        updater._writeFiat()
+        fiat_data = updater._prepare_fiat_data()
+        updater._write_fiat(fiat_data)
         query = f"from(bucket: \"{settings.INFLUXDB_DEFAULT_BUCKET}\") |> range(start: -1m)"
         query += f' |> filter(fn: (r) => (r._measurement == "{self.fiat_measurement}"))'
         query += f' |> filter(fn: (r) => (r.currency == "{self.base}"))'
@@ -206,3 +206,25 @@ class TestInfluxUpdater(unittest.TestCase):
             self.assertEqual(len(i.records), 1)
             record = i.records[0]
             self.assertEqual(record["_value"], self.fiat_data[self.fiatpair]["last"])
+
+    def test_prepare_fiat_data_no_data(self):
+        """Test when there are no fiat pairs in InfluxDB and in the data"""
+        fiat_data = self.updater._prepare_fiat_data()
+        self.assertFalse(fiat_data)
+
+    def test_prepare_fiat_data_with_data(self):
+        """Test when there are no fiat pairs in InfluxDB, but one fiat pair in the data"""
+        base = "SOL"
+        symbol = f"{base}-{self.base}"
+        self.fiat_data[symbol] = {
+            'base': 'SOL', 'quote': 'BNBTEST', 'last': 0.015,
+            'bid': 0, 'ask': 0, 'volume': 140,
+            'exchange_id': self.exchange.id
+        }
+        self.updater.data = self.fiat_data
+        fiat_data = self.updater._prepare_fiat_data()
+        self.assertEqual(len(fiat_data), 2)
+        # Assert the calculations are correct
+        self.assertEqual(fiat_data[self.base], self.fiat_data[self.fiatpair]['last'])
+        price = self.fiat_data[self.fiatpair]['last'] * self.fiat_data[symbol]["last"]
+        self.assertEqual(price, fiat_data[base])

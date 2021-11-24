@@ -83,12 +83,13 @@ def get_split_symbol(market: str):
 def get_base_and_quote(market_info: dict):
     """Get the market base/quote from market['info']"""
     base = quote = None
+    if market_info.get("quote"):
+        quote = market_info['quote']
     if market_info.get("underlying"):
         # Exchange FTX doesn't add quote/base info but underlying
         quote = market_info['underlying']
         split_symbol = get_split_symbol(market_info['name'])
         start = market_info['name'].find(quote)
-        print(market_info, quote)
         if start == 0:
             # quote is in the start of the string - the rest is the base
             base = market_info['name'][len(quote) + 1:]

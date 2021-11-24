@@ -96,7 +96,7 @@ class FiatMarketModel(InfluxModel):
 
 class PairsMarketModel(InfluxModel):
     required_influx_tags = ["base", "quote"]
-    optional_influx_tags = ["exchange_id", "ask", "bid", "open", "close", "high", "low"]
+    optional_influx_tags = ["symbol", "exchange_id", "ask", "bid", "open", "close", "high", "low"]
     sorting_tags = ["_time"]
     fields = [
         {"name": "last", "type": float}

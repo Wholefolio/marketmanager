@@ -48,7 +48,6 @@ class TestMarketManager(unittest.TestCase):
         except FileNotFoundError:
             pass
         if hasattr(self, "extra_exchanges"):
-            print(self.extra_exchanges)
             for i in self.extra_exchanges:
                 obj = Exchange.objects.get(name=i)
                 obj.delete()
