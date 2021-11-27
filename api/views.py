@@ -99,9 +99,17 @@ class MarketHistoricalData(InfluxListViewSet):
     influx_model = models.PairsMarketModel
 
 
-class FiatHistoricalData(InfluxListViewSet):
+class AggregatedFiatHistoricalData(InfluxListViewSet):
     """Endpoint for fiat historical data from InfluxDB"""
-    additional_filter_params = ["exchange_id", "time_end"]
+    additional_filter_params = ["time_end"]
+    required_filter_params = ["currency", "time_start"]
+    sorting_tags = ["timestamp"]
+    influx_model = models.AggregatedFiatMarketModel
+
+
+class ExchangeFiatHistoricalData(InfluxListViewSet):
+    """Endpoint for fiat historical data from InfluxDB"""
+    additional_filter_params = ["time_end", "exchange_id"]
     required_filter_params = ["currency", "time_start"]
     sorting_tags = ["timestamp"]
     influx_model = models.FiatMarketModel

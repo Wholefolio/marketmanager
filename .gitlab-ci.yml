@@ -71,6 +71,7 @@ release-image:
       - docker login -u $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN
       - docker pull $REGISTRY:test
       - docker tag $REGISTRY:test $REGISTRY:${CI_PIPELINE_ID}
+      - docker tag $REGISTRY:test $REGISTRY:latest
       - docker push $REGISTRY:${CI_PIPELINE_ID}
       - docker push $REGISTRY:latest
 

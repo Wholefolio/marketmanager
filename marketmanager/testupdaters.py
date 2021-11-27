@@ -39,9 +39,9 @@ class TestExchangeUpdater(unittest.TestCase):
         """Test that the Updater class was created."""
         self.assertIsInstance(self.updater, ExchangeUpdater)
 
-    def test_createCurrencyMap(self):
+    def test_createMap(self):
         """Test the creation of a data map using some values."""
-        result = self.updater.createCurrencyMap(CURRENCY_DATA)
+        result = self.updater.createMap(CURRENCY_DATA, "symbol", "price")
         for i in CURRENCY_DATA:
             self.assertTrue(i["symbol"] in result)
             self.assertEqual(i["price"], result[i["symbol"]])
@@ -213,7 +213,7 @@ class TestInfluxUpdater(unittest.TestCase):
         self.assertFalse(fiat_data)
 
     def test_prepare_fiat_data_with_data(self):
-        """Test when there are no fiat pairs in InfluxDB, but one fiat pair in the data"""
+        """Test when there is a fiat pair in the data"""
         base = "SOL"
         symbol = f"{base}-{self.base}"
         self.fiat_data[symbol] = {
@@ -228,3 +228,10 @@ class TestInfluxUpdater(unittest.TestCase):
         self.assertEqual(fiat_data[self.base], self.fiat_data[self.fiatpair]['last'])
         price = self.fiat_data[self.fiatpair]['last'] * self.fiat_data[symbol]["last"]
         self.assertEqual(price, fiat_data[base])
+
+    def test_prepare_fiat_data_not_valid_last(self):
+        """Test when there are the last trade value is 0"""
+        self.fiat_data[self.fiatpair]['last'] = 0
+        self.updater.data = self.fiat_data
+        fiat_data = self.updater._prepare_fiat_data()
+        self.assertEqual(len(fiat_data), 0)

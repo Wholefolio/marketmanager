@@ -29,7 +29,7 @@ MARKET_STALE_DAYS = os.environ.get("MARKET_STALE_DAYS", 7)
 EXCHANGE_TIMEOUT = os.environ.get("EXCHANGE_TIMEOUT", 120)
 EXCHANGE_DEFAULT_FETCH_INTERVAL = os.environ.get("EXCHANGE_DEFAULT_FETCH_INTERVAL", 300)
 ENABLED_EXCHANGES = os.environ.get("ENABLED_EXCHANGES", "")
-FIAT_SYMBOLS = os.environ.get("FIAT_SYMBOLS", ["USD", "USDT"])
+FIAT_SYMBOLS = os.environ.get("FIAT_SYMBOLS", ["USD", "USDT", "USDC", "BUSD"])
 
 if ENABLED_EXCHANGES:
     ENABLED_EXCHANGES = ENABLED_EXCHANGES.split(",")
@@ -66,6 +66,7 @@ CACHE_TTL = 60
 
 INFLUX_MEASUREMENT_FIAT_MARKETS = "currencies_fiat"
 INFLUX_MEASUREMENT_PAIRS = "currency_pairs"
+INFLUX_AGGREGATION_BUCKET = "marketmanager_aggregated"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -114,7 +115,7 @@ INSTALLED_APPS = [
     'django_celery_results',
     'django_filters',
     'daemon',
-    # "django_influxdb",
+    "django_influxdb",
     'api',
 ]
 

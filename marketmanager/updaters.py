@@ -46,10 +46,13 @@ class InfluxUpdater:
         for symbol, values in self.data.items():
             base = values["base"]
             quote = values["quote"]
+            last = values["last"]
+            if last == 0:
+                continue
             if base not in initial_quote_map and quote in settings.FIAT_SYMBOLS:
-                initial_quote_map[base] = values["last"]
+                initial_quote_map[base] = last
             elif quote in initial_quote_map and base not in initial_quote_map:
-                initial_quote_map[base] = values['last'] * initial_quote_map[quote]
+                initial_quote_map[base] = last * initial_quote_map[quote]
             else:
                 if quote not in tags_for_fetch and quote not in settings.FIAT_SYMBOLS:
                     tags_for_fetch.append(quote)
@@ -78,7 +81,7 @@ class InfluxUpdater:
         self.logger.info("Writing fiat data to InfluxDB")
         with ThreadPoolExecutor(max_workers=5) as executor:
             for currency, price in fiat_data.items():
-                self.logger.debug(f"Working on currency {currency}")
+                self.logger.debug(f"Working on currency {currency}. Price: {price}")
                 values = {"currency": currency, "price": price, "exchange_id": self.exchange_id}
                 future = executor.submit(self._create, "fiat", values)
                 future.add_done_callback(self._callback)
@@ -100,6 +103,7 @@ class InfluxUpdater:
         self._write_pairs()
         fiat_data = self._prepare_fiat_data()
         self._write_fiat(fiat_data)
+        return fiat_data
 
 
 class ExchangeUpdater:
@@ -113,11 +117,11 @@ class ExchangeUpdater:
         self.logger = logging.getLogger("marketmanager-celery")
         self.logger = logging.LoggerAdapter(self.logger, extra)
 
-    def createCurrencyMap(self, data):
+    def createMap(self, data, key, value):
         """Create a map from the currency data - name: price."""
         output = {}
         for i in data:
-            output[i['symbol']] = i['price']
+            output[i[key]] = i[value]
         return output
 
     def createMarkets(self):
@@ -129,12 +133,8 @@ class ExchangeUpdater:
 
     def getLocalFiatPrices(self):
         """Get markets which have a quote in fiat."""
-        quote_markets = Market.objects.filter(quote__in=settings.FIAT_SYMBOLS)
-        output = {}
-        # Create a map for easier filtering
-        for market in quote_markets:
-            output[market.base] = market.last
-        return output
+        quote_markets = Market.objects.filter(quote__in=settings.FIAT_SYMBOLS).values()
+        return self.createMap(quote_markets, "base", "last")
 
     def getBasePrices(self):
         """Get the price list from CoinManager or from a market with a currency base USD"""
@@ -152,8 +152,7 @@ class ExchangeUpdater:
             # markets with base USD
             self.logger.warning("There are no currencies in CoinManager!")
             return
-        data_map = self.createCurrencyMap(response['results'])
-        return data_map
+        return self.createMap(response['results'], "symbol", "price")
 
     def updateExistingMarkets(self, current_data):
         """Update existing markets data."""
@@ -173,14 +172,15 @@ class ExchangeUpdater:
         self.createMarkets()
 
     @transaction.atomic
-    def run(self):
-        """Main run method - create/update the market data passed in."""
+    def run(self, fiat_data: dict = None):
+        """Main run method - create/update the market data passed in.
+        fiat_data can be passed from InfluxUpdater."""
         current_time = timezone.now().timestamp()
         self.logger.info("Starting update!")
         # Fetch the old data by filtering on source id
         self.logger.info("Fetching old data...")
         current_data = Market.objects.select_for_update().filter(exchange=self.exchange)
-        self.summarizeData()
+        self.summarizeData(fiat_data)
         if not current_data:
             self.createMarkets()
         else:
@@ -193,10 +193,17 @@ class ExchangeUpdater:
         self.updateExchange()
         return "Updater finished successfully"
 
-    def summarizeData(self):
+    def summarizeData(self, fiat_data: dict = {}):
         """Create a summary of the market data we have for the exchange."""
         # Get the current prices
-        currency_prices = self.getBasePrices()
+        base_prices = self.getBasePrices()
+        if base_prices and fiat_data:
+            currency_prices = {**base_prices, **fiat_data}
+        elif fiat_data:
+            currency_prices = fiat_data
+        else:
+            currency_prices = base_prices
+
         self.logger.debug(f"Base prices: {currency_prices}")
         if not currency_prices:
             self.logger.error("Can't summarize exchange data due to no currency prices")
@@ -206,13 +213,22 @@ class ExchangeUpdater:
         top_pair = ""
         for name, values in self.market_data.items():
             if values['quote'] not in settings.FIAT_SYMBOLS:
-                currency_price = currency_prices.get(values["quote"], 0)
+                quote_price = currency_prices.get(values["quote"])
             else:
-                currency_price = 1
-            if not currency_price:
-                self.logger.debug("Missing fiat price for {}".format(values["quote"]))
+                quote_price = 1
+            if values['base'] not in settings.FIAT_SYMBOLS:
+                base_price = currency_prices.get(values['base'])
+            else:
+                base_price = 1
+            if not quote_price and not base_price:
+                self.logger.debug(f"Missing fiat price for quote and base {name}")
                 continue
-            volume_usd = values['volume'] * currency_price * values['last']
+            if quote_price and values['last']:
+                volume_usd = values['volume'] * quote_price * values['last']
+            elif base_price and values['last']:
+                volume_usd = values['volume'] * (base_price / values['last'])
+            else:
+                continue
             if volume_usd >= top_pair_volume:
                 top_pair = name
                 top_pair_volume = volume_usd

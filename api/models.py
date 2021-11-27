@@ -89,9 +89,18 @@ class FiatMarketModel(InfluxModel):
     fields = [
         {"name": "price", "type": float},
     ]
-    drop_fields = ["exchange_id"]  # Dropping the exchange ID allows aggregation on all exchanges
     measurement = settings.INFLUX_MEASUREMENT_FIAT_MARKETS
     bucket = settings.INFLUXDB_DEFAULT_BUCKET
+
+
+class AggregatedFiatMarketModel(InfluxModel):
+    required_influx_tags = ["currency"]
+    sorting_tags = ["_time"]
+    fields = [
+        {"name": "price", "type": float},
+    ]
+    measurement = settings.INFLUX_MEASUREMENT_FIAT_MARKETS
+    bucket = settings.INFLUX_AGGREGATION_BUCKET
 
 
 class PairsMarketModel(InfluxModel):

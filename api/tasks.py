@@ -8,6 +8,8 @@ from django.db import transaction
 from django.utils import timezone
 from django.conf import settings
 from celery import Task
+from django_influxdb.models import InfluxTasks
+from django_influxdb.tasks import EveryTask
 
 from marketmanager.updaters import ExchangeUpdater, InfluxUpdater
 from marketmanager.celery import app
@@ -61,17 +63,17 @@ def fetch_exchange_data(self, exchange_id: int):
     update_data = utils.parse_market_data(data, exchange_id)
     # Create/update the data
     logger.info("Starting updaters.")
-    result = None
+    fiat_data = result = None
     try:
         influx_data = deepcopy(update_data)
         influx_updater = InfluxUpdater(exchange_id, influx_data, self.request.id)
-        influx_updater.write()
+        fiat_data = influx_updater.write()
     except Exception as e:
         traceback.print_exc()
         logger.critical("Influx updater failed. Exception: {}".format(e))
     try:
         updater = ExchangeUpdater(exchange_id, update_data, self.request.id)
-        result = updater.run()
+        result = updater.run(fiat_data)
     except Exception as e:
         traceback.print_exc()
         logger.critical("DB updater failed. Exception: {}".format(e))
@@ -96,3 +98,12 @@ def clear_stale_markets():
     markets = Market.objects.filter(updated__lte=d)
     markets.delete()
     return "Cleared {} stale markets".format(len(markets))
+
+
+@app.task
+def sync_influx_tasks():
+    """Get or create existing InfluxDB tasks from the DB"""
+    for task in InfluxTasks.objects.all():
+        influx_task = EveryTask(name=task.name)
+        if influx_task._get_influx_task():
+            influx_task.create_from_db()
