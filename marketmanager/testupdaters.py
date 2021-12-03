@@ -3,9 +3,10 @@ from unittest.mock import patch
 from django.conf import settings
 from django.utils import timezone
 from influxdb_client import InfluxDBClient
+
 from marketmanager.updaters import ExchangeUpdater, InfluxUpdater, FiatMarketModel, PairsMarketModel
 from api.models import Market, Exchange
-
+from marketmanager import utils
 
 CURRENCY_DATA = [{"name": "Bitcoin", "symbol": "BTC", "price": 6500},
                  {"name": "Ethereum", "symbol": "ETH", "price": 350}]
@@ -157,7 +158,7 @@ class TestInfluxUpdater(unittest.TestCase):
         }}
         PairsMarketModel.measurement = self.pair_measurement
         FiatMarketModel.measurement = self.fiat_measurement
-        self.updater = InfluxUpdater(self.exchange.id, self.data)
+        self.updater = InfluxUpdater(self.exchange.id, self.data, self.fiat_data)
         self.influx_client = InfluxDBClient(url=settings.INFLUXDB_URL, token=settings.INFLUXDB_TOKEN)
         self.query_api = self.influx_client.query_api()
 
@@ -194,9 +195,9 @@ class TestInfluxUpdater(unittest.TestCase):
     def test_write_fiat(self):
         """Test inserting fiat timeseries into Influx"""
         FiatMarketModel.measurement = self.fiat_measurement
-        updater = InfluxUpdater(self.exchange.id, self.fiat_data)
-        fiat_data = updater._prepare_fiat_data()
-        updater._write_fiat(fiat_data)
+        fiat_data = utils.prepare_fiat_data(self.fiat_data)
+        updater = InfluxUpdater(self.exchange.id, self.data, fiat_data)
+        updater._write_fiat()
         query = f"from(bucket: \"{settings.INFLUXDB_DEFAULT_BUCKET}\") |> range(start: -1m)"
         query += f' |> filter(fn: (r) => (r._measurement == "{self.fiat_measurement}"))'
         query += f' |> filter(fn: (r) => (r.currency == "{self.base}"))'
@@ -206,32 +207,3 @@ class TestInfluxUpdater(unittest.TestCase):
             self.assertEqual(len(i.records), 1)
             record = i.records[0]
             self.assertEqual(record["_value"], self.fiat_data[self.fiatpair]["last"])
-
-    def test_prepare_fiat_data_no_data(self):
-        """Test when there are no fiat pairs in InfluxDB and in the data"""
-        fiat_data = self.updater._prepare_fiat_data()
-        self.assertFalse(fiat_data)
-
-    def test_prepare_fiat_data_with_data(self):
-        """Test when there is a fiat pair in the data"""
-        base = "SOL"
-        symbol = f"{base}-{self.base}"
-        self.fiat_data[symbol] = {
-            'base': 'SOL', 'quote': 'BNBTEST', 'last': 0.015,
-            'bid': 0, 'ask': 0, 'volume': 140,
-            'exchange_id': self.exchange.id
-        }
-        self.updater.data = self.fiat_data
-        fiat_data = self.updater._prepare_fiat_data()
-        self.assertEqual(len(fiat_data), 2)
-        # Assert the calculations are correct
-        self.assertEqual(fiat_data[self.base], self.fiat_data[self.fiatpair]['last'])
-        price = self.fiat_data[self.fiatpair]['last'] * self.fiat_data[symbol]["last"]
-        self.assertEqual(price, fiat_data[base])
-
-    def test_prepare_fiat_data_not_valid_last(self):
-        """Test when there are the last trade value is 0"""
-        self.fiat_data[self.fiatpair]['last'] = 0
-        self.updater.data = self.fiat_data
-        fiat_data = self.updater._prepare_fiat_data()
-        self.assertEqual(len(fiat_data), 0)

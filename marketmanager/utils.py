@@ -1,7 +1,9 @@
 import ccxt
 import logging
 from django.utils import timezone
-from api.models import Exchange, ExchangeStatus
+from django.conf import settings
+
+from api.models import Exchange, ExchangeStatus, FiatMarketModel
 
 logger = logging.getLogger("marketmanager")
 
@@ -42,3 +44,45 @@ def set_running_status(exchange: Exchange, running: bool):
     status.running = running
     status.time_started = timezone.now()
     status.save()
+
+
+def prepare_fiat_data(data, limit_to_exchange=False):
+    """Prepare the market pairs for fiat insertion.
+    We must map out all quotes and bases so they have a corresponding value in fiat prior to insertion.
+    If limit_to_exchange is True then filter fiat rates only from current exchange if any
+    """
+    tags_for_fetch = []
+    initial_quote_map = {}
+    base_map = {}
+    for symbol, values in data.items():
+        base = values["base"]
+        quote = values["quote"]
+        last = values["last"]
+        if last == 0:
+            continue
+        if base not in initial_quote_map and quote in settings.FIAT_SYMBOLS:
+            initial_quote_map[base] = last
+        elif quote in initial_quote_map and base not in initial_quote_map:
+            initial_quote_map[base] = last * initial_quote_map[quote]
+        else:
+            if quote not in tags_for_fetch and quote not in settings.FIAT_SYMBOLS:
+                tags_for_fetch.append(quote)
+            if base not in base_map:
+                base_map[base] = data[symbol]
+    if tags_for_fetch:
+        tags = {"currency": tags_for_fetch}
+        if limit_to_exchange:
+            tags = {"exchange_id": data[symbol]["exchange_id"]}
+        results = FiatMarketModel(data=tags).filter("10m")
+        quote_map = {x["currency"]: x["price"] for x in results}
+    else:
+        quote_map = {}
+    quote_map = {**quote_map, **initial_quote_map}
+    for symbol, values in data.items():
+        if values["base"] in quote_map:
+            continue
+        if values["quote"] not in quote_map:
+            logger.warning(f"Couldn't find quote {values['quote']} for base {base}")
+        else:
+            quote_map[base] = quote_map[values["quote"]] * values["last"]
+    return quote_map

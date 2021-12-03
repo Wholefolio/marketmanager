@@ -17,9 +17,10 @@ class InfluxUpdater:
     """Handle inserts of timeseries to InfluxDB. We have 2 cases:
     * Markets were the base is in fiat
     * Markets were the base is another cryptocurrency"""
-    def __init__(self, exchange_id: int, data: dict, task_id: str = None):
+    def __init__(self, exchange_id: int, data: dict, fiat_data: dict, task_id: str = None):
         self.exchange_id = exchange_id
         self.data = data
+        self.fiat_data = fiat_data
         extra = {"task_id": task_id, "exchange": self.exchange_id}
         self.logger = logging.getLogger("marketmanager-celery")
         self.logger = logging.LoggerAdapter(self.logger, extra)
@@ -35,52 +36,11 @@ class InfluxUpdater:
         if exc:
             self.logger.warning(f"Error occurred while trying to write to Influxdb. Exception: {exc}")
 
-    def _prepare_fiat_data(self, limit_to_exchange=False):
-        """Prepare the market pairs for fiat insertion.
-        We must map out all quotes and bases so they have a corresponding value in fiat prior to insertion.
-        If limit_to_exchange is True then filter fiat rates only from current exchange if any
-        """
-        tags_for_fetch = []
-        initial_quote_map = {}
-        base_map = {}
-        for symbol, values in self.data.items():
-            base = values["base"]
-            quote = values["quote"]
-            last = values["last"]
-            if last == 0:
-                continue
-            if base not in initial_quote_map and quote in settings.FIAT_SYMBOLS:
-                initial_quote_map[base] = last
-            elif quote in initial_quote_map and base not in initial_quote_map:
-                initial_quote_map[base] = last * initial_quote_map[quote]
-            else:
-                if quote not in tags_for_fetch and quote not in settings.FIAT_SYMBOLS:
-                    tags_for_fetch.append(quote)
-                if base not in base_map:
-                    base_map[base] = self.data[symbol]
-        if tags_for_fetch:
-            tags = {"currency": tags_for_fetch}
-            if limit_to_exchange:
-                tags = {"exchange_id": self.data[symbol]["exchange_id"]}
-            results = FiatMarketModel(data=tags).filter("10m")
-            quote_map = {x["currency"]: x["price"] for x in results}
-        else:
-            quote_map = {}
-        quote_map = {**quote_map, **initial_quote_map}
-        for symbol, values in self.data.items():
-            if values["base"] in quote_map:
-                continue
-            if values["quote"] not in quote_map:
-                self.logger.warning(f"Couldn't find quote {values['quote']} for base {base}")
-            else:
-                quote_map[base] = quote_map[values["quote"]] * values["last"]
-        return quote_map
-
-    def _write_fiat(self, fiat_data):
+    def _write_fiat(self):
         """Write Market fiat data to Influx"""
         self.logger.info("Writing fiat data to InfluxDB")
         with ThreadPoolExecutor(max_workers=5) as executor:
-            for currency, price in fiat_data.items():
+            for currency, price in self.fiat_data.items():
                 self.logger.debug(f"Working on currency {currency}. Price: {price}")
                 values = {"currency": currency, "price": price, "exchange_id": self.exchange_id}
                 future = executor.submit(self._create, "fiat", values)
@@ -101,9 +61,7 @@ class InfluxUpdater:
     def write(self):
         """Write the Market data of the exchange to InfluxDB"""
         self._write_pairs()
-        fiat_data = self._prepare_fiat_data()
-        self._write_fiat(fiat_data)
-        return fiat_data
+        self._write_fiat()
 
 
 class ExchangeUpdater:

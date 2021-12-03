@@ -23,8 +23,4 @@ app.conf.beat_schedule = {
         'task': 'api.tasks.clear_stale_markets',
         'schedule': crontab(minute=0, hour=10),
     },
-    'sync_influx_tasks': {
-        'task': 'api.tasks.sync_influx_tasks',
-        'schedule': crontab(minute=5),
-    }
 }
