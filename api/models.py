@@ -59,6 +59,17 @@ class Market(models.Model):
         unique_together = (('name', 'exchange'))
 
 
+class CurrencyFiatPrices(models.Model):
+    """Model for current fiat prices per each symbol"""
+    currency = models.CharField(unique=True, max_length=64)
+    exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE)
+    price = models.FloatField()
+
+    class Meta:
+        db_table = "currency_fiat_prices"
+        unique_together = (('currency', 'exchange'))
+
+
 class ExchangeStatus(models.Model):
     """Exchange status model - current status of the exchange data gather."""
 

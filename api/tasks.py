@@ -58,21 +58,21 @@ def fetch_exchange_data(self, exchange_id: int):
     logger.debug("Raw data: {}".format(data))
     # Parse the data
     logger.info("Parsing the data.")
-    update_data = utils.parse_market_data(data, exchange_id)
+    market_data = utils.parse_market_data(data, exchange_id)
     # Create/update the data
     logger.info("Starting updaters.")
     result = None
-    fiat_data = prepare_fiat_data(update_data)
+    fiat_data = prepare_fiat_data(market_data)
     try:
-        influx_data = deepcopy(update_data)
+        influx_data = deepcopy(market_data)
         influx_updater = InfluxUpdater(exchange_id, influx_data, fiat_data, self.request.id)
         influx_updater.write()
     except Exception as e:
         traceback.print_exc()
         logger.critical("Influx updater failed. Exception: {}".format(e))
     try:
-        updater = ExchangeUpdater(exchange_id, update_data, self.request.id)
-        result = updater.run(fiat_data)
+        updater = ExchangeUpdater(exchange_id, market_data, fiat_data, self.request.id)
+        result = updater.run()
     except Exception as e:
         traceback.print_exc()
         logger.critical("DB updater failed. Exception: {}".format(e))

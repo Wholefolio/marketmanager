@@ -5,7 +5,7 @@ from django.utils import timezone
 from influxdb_client import InfluxDBClient
 
 from marketmanager.updaters import ExchangeUpdater, InfluxUpdater, FiatMarketModel, PairsMarketModel
-from api.models import Market, Exchange
+from api.models import Market, Exchange, CurrencyFiatPrices
 from marketmanager import utils
 
 CURRENCY_DATA = [{"name": "Bitcoin", "symbol": "BTC", "price": 6500},
@@ -40,21 +40,21 @@ class TestExchangeUpdater(unittest.TestCase):
         """Test that the Updater class was created."""
         self.assertIsInstance(self.updater, ExchangeUpdater)
 
-    def test_createMap(self):
+    def test_create_map(self):
         """Test the creation of a data map using some values."""
-        result = self.updater.createMap(CURRENCY_DATA, "symbol", "price")
+        result = self.updater.create_map(CURRENCY_DATA, "symbol", "price")
         for i in CURRENCY_DATA:
             self.assertTrue(i["symbol"] in result)
             self.assertEqual(i["price"], result[i["symbol"]])
 
-    def test_createMarkets(self):
+    def test_create_markets(self):
         """Test the creation of new markets."""
-        self.updater.createMarkets()
+        self.updater.create_markets()
         market = Market.objects.all()
         self.assertEqual(len(market), 1)
         self.assertEqual(market[0].name, "ICX-BNB")
 
-    def testupdateExistingMarkets(self):
+    def testupdate_existing_markets(self):
         """Test the update of existing data."""
         market = Market(name="ICX-BNB", **self.data["ICX-BNB"])
         market.save()
@@ -65,7 +65,7 @@ class TestExchangeUpdater(unittest.TestCase):
                                 'exchange_id': self.exchange.id}}
         existing_data = Market.objects.all()
         updater = ExchangeUpdater(self.exchange.id, new_data)
-        updater.updateExistingMarkets(existing_data)
+        updater.update_existing_markets(existing_data)
         after_update = Market.objects.all()
         self.assertEqual(len(existing_data), 1)
         self.assertEqual(after_update[0].last, last)
@@ -78,7 +78,7 @@ class TestExchangeUpdater(unittest.TestCase):
         self.assertTrue(exchange.last_data_fetch)
 
     # Mock testing
-    @patch("marketmanager.updaters.ExchangeUpdater.getBasePrices")
+    @patch("marketmanager.updaters.ExchangeUpdater.get_base_prices")
     def testRun(self, mock_result):
         """Test the main run method."""
         data_map = {"ICX": 6, "BNB": 10}
@@ -90,50 +90,74 @@ class TestExchangeUpdater(unittest.TestCase):
         # Check if the exchange has been updated
         self.assertTrue(Exchange.objects.get(name=self.exchange.name).last_data_fetch)
 
-    @patch("marketmanager.updaters.ExchangeUpdater.getBasePrices")
-    def testSummarizeData(self, mock_result):
+    @patch("marketmanager.updaters.ExchangeUpdater.get_base_prices")
+    def testsummarize_data(self, mock_result):
         data_map = {"ICX": 6, "BNB": 10}
         mock_result.return_value = data_map
-        self.updater.summarizeData()
+        self.updater.summarize_data()
         quote = self.data["ICX-BNB"]["quote"]
         exchange_volume = self.data["ICX-BNB"]["volume"] * data_map[quote] * self.last
         exchange = Exchange.objects.get(name="Test")
         self.assertEqual(exchange.volume, exchange_volume)
         self.assertEqual(exchange.top_pair, "ICX-BNB")
 
-    @patch("marketmanager.updaters.ExchangeUpdater.getBasePrices")
-    def testSummarizeData_NoBasePrices(self, mock_result):
+    @patch("marketmanager.updaters.ExchangeUpdater.get_base_prices")
+    def testsummarize_data_NoBasePrices(self, mock_result):
         """There shouldn't be any summaries if there are no base results"""
         mock_result.return_value = {}
-        self.updater.summarizeData()
+        self.updater.summarize_data()
         exchange = Exchange.objects.get(name="Test")
         self.assertFalse(exchange.volume, 0)
         self.assertFalse(exchange.top_pair)
 
     @patch("marketmanager.updaters.appRequest")
-    def testGetBasePrices_WithCurrencies(self, mock_result):
+    def testget_base_prices_WithCurrencies(self, mock_result):
         mock_result.return_value = get_json()
-        output = self.updater.getBasePrices()
+        output = self.updater.get_base_prices()
         for item in CURRENCY_DATA:
             self.assertTrue(item["symbol"] in output)
 
     @patch("marketmanager.updaters.appRequest")
-    def testGetBasePrices_WithoutCurrencies_WithoutLocal(self, mock_result):
+    def testget_base_prices_WithoutCurrencies_WithoutLocal(self, mock_result):
         """Test the method without an existing local fiat market."""
         mock_result.return_value = APP_REQUEST_ERROR
-        output = self.updater.getBasePrices()
+        output = self.updater.get_base_prices()
         self.assertFalse(output)
 
     @patch("marketmanager.updaters.appRequest")
-    def testGetBasePrices_WithoutCurrencies_WithLocal(self, mock_result):
+    def testget_base_prices_WithoutCurrencies_WithLocal(self, mock_result):
         """Test the method with an existing local fiat market."""
         data = {'quote': 'USD', 'base': 'BNB', 'last': 10, 'bid': 9, 'ask': 10,
                 'volume': 50, 'exchange_id': self.exchange.id}
         m = Market(name="BNB-USD", **data)
         m.save()
         mock_result.return_value = APP_REQUEST_ERROR
-        output = self.updater.getBasePrices()
+        output = self.updater.get_base_prices()
         self.assertTrue(data["base"] in output)
+
+    def test_update_fiat_prices_no_data(self):
+        """Test updating without any fiat data"""
+        self.updater.update_fiat_prices()
+
+    def test_update_fiat_prices_new_prices(self):
+        """Test creating new entries"""
+        currency = "BTC"
+        fiat_data = {currency: 50000}
+        self.updater.fiat_data = fiat_data
+        self.updater.update_fiat_prices()
+        obj = CurrencyFiatPrices.objects.get(currency=currency, exchange=self.exchange.id)
+        self.assertEqual(obj.price, fiat_data[currency])
+
+    def test_update_fiat_prices_existing_prices(self):
+        """Test updating existing entries"""
+        currency = "BTC"
+        obj = CurrencyFiatPrices(currency=currency, exchange=self.exchange, price=10000)
+        obj.save()
+        fiat_data = {currency: 50000}
+        self.updater.fiat_data = fiat_data
+        self.updater.update_fiat_prices()
+        obj.refresh_from_db()
+        self.assertEqual(obj.price, fiat_data[currency])
 
 
 class TestInfluxUpdater(unittest.TestCase):
