@@ -1,5 +1,4 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from django.utils import timezone
 from django.db import transaction
 from django.conf import settings
