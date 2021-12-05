@@ -81,7 +81,9 @@ def prepare_fiat_data(data, limit_to_exchange=False):
     for symbol, values in data.items():
         if values["base"] in quote_map:
             continue
-        if values["quote"] not in quote_map:
+        if values["quote"] in settings.FIAT_SYMBOLS and values["last"] > 0:
+            quote_map[base] = values["last"]
+        elif values["quote"] not in quote_map:
             logger.warning(f"Couldn't find quote {values['quote']} for base {base}")
         else:
             quote_map[base] = quote_map[values["quote"]] * values["last"]

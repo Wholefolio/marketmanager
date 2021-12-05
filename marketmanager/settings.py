@@ -67,6 +67,7 @@ CACHE_TTL = 60
 INFLUX_MEASUREMENT_FIAT_MARKETS = "currencies_fiat"
 INFLUX_MEASUREMENT_PAIRS = "currency_pairs"
 INFLUX_AGGREGATION_BUCKET = "marketmanager_aggregated"
+INFLUXDB_TIMEOUT = os.environ.get("INFLUXDB_TIMEOUT", 5000)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

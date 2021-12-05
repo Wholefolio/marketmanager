@@ -39,23 +39,21 @@ class InfluxUpdater:
     def _write_fiat(self):
         """Write Market fiat data to Influx"""
         self.logger.info("Writing fiat data to InfluxDB")
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            for currency, price in self.fiat_data.items():
-                self.logger.debug(f"Working on currency {currency}. Price: {price}")
-                values = {"currency": currency, "price": price, "exchange_id": self.exchange_id}
-                future = executor.submit(self._create, "fiat", values)
-                future.add_done_callback(self._callback)
+        data = []
+        for currency, price in self.fiat_data.items():
+            self.logger.debug(f"Working on currency {currency}. Price: {price}")
+            values = {"currency": currency, "price": price, "exchange_id": self.exchange_id}
+            data.append(values)
+        self._create("fiat", data)
         self.logger.info("Finished writing fiat data.")
 
     def _write_pairs(self):
         """Write Market pair data to Influx"""
         self.logger.info("Transforming market pairs data for InfluxDB")
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            for symbol, values in self.data.items():
-                self.logger.debug(f"Working on symbol {symbol}")
-                values["symbol"] = symbol
-                future = executor.submit(self._create, "pairs", values)
-                future.add_done_callback(self._callback)
+        for symbol, values in self.data.items():
+            self.logger.debug(f"Working on symbol {symbol}")
+            values["symbol"] = symbol
+        self._create("pairs", list(self.data.values()))
         self.logger.info("Finished writing market pairs.")
 
     def write(self):

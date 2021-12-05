@@ -53,7 +53,7 @@ integration-tests:
   stage: test
   services:
     - postgres:latest
-    - influxdb:2.0.6
+    - influxdb:2.1.1
   tags:
     - docker
   image: $REGISTRY:test

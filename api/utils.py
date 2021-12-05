@@ -105,7 +105,7 @@ def get_base_and_quote(market_info: dict):
 
 
 def parse_market_data(data: dict, exchange_id: int):
-    """Build meaningful objects from the exchange data for DB insertion"""
+    """Build a dict of symbol->values from the exchange data for DB insertion"""
     update_data = {}
     for symbol, values in data.items():
         base = quote = None
@@ -130,9 +130,12 @@ def parse_market_data(data: dict, exchange_id: int):
         # Set them to 0 as there might be nulls
         temp = {"last": 0, "bid": 0, "ask": 0, "high": 0, "low": 0, "open": 0, "close": 0,
                 "baseVolume": 0}
-        for item in temp.keys():
-            if values.get(item):
-                temp[item] = values[item]
+        for key in temp.keys():
+            if values.get(key):
+                # Filter out those who don't have valid last values
+                if key == "last" and values[key] <= 0:
+                    continue
+                temp[key] = values[key]
         update_data[name] = {"base": base,
                              "quote": quote,
                              "last": temp["last"],
