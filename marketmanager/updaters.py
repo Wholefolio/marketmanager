@@ -1,6 +1,6 @@
 import logging
 from django.utils import timezone
-from django.db import transaction
+from django.db import transaction, utils
 from django.conf import settings
 
 from api.models import Exchange, Market, CurrencyFiatPrices, FiatMarketModel, PairsMarketModel
@@ -80,6 +80,7 @@ class ExchangeUpdater:
             output[i[key]] = i[value]
         return output
 
+    @transaction.atomic
     def create_markets(self):
         """Method for creation of market data."""
         self.logger.info("Starting creation of markets")
@@ -110,8 +111,10 @@ class ExchangeUpdater:
             return
         return self.create_map(response['results'], "symbol", "price")
 
-    def update_existing_markets(self, current_data):
+    @transaction.atomic
+    def update_existing_markets(self):
         """Update existing markets data."""
+        current_data = Market.objects.select_for_update().filter(exchange=self.exchange)
         for market in current_data:
             # Check if the name is in the market data - if yes update it
             if market.name in self.market_data:
@@ -127,23 +130,20 @@ class ExchangeUpdater:
         # We have gone through the existing ones now we have to create the new
         self.create_markets()
 
-    @transaction.atomic
     def run(self):
         """Main run method - create/update the market data passed in."""
         current_time = timezone.now().timestamp()
         self.logger.info("Starting update!")
         # Fetch the old data by filtering on source id
         self.logger.info("Fetching old data...")
-        current_data = Market.objects.select_for_update().filter(exchange=self.exchange)
+        current_data = Market.objects.filter(exchange=self.exchange).count()
         self.summarize_data()
         self.update_fiat_prices()
         if not current_data:
             self.create_markets()
         else:
-            msg = "We have to work on {} entries.".format(len(current_data))
-            self.logger.info(msg)
-            self.logger.info("Starting market data update.")
-            self.update_existing_markets(current_data)
+            self.logger.info(f"We have to work on {current_data} entries. Starting update.")
+            self.update_existing_markets()
         time_delta = timezone.now().timestamp() - current_time
         self.logger.info("Update finished in: {} seconds".format(time_delta))
         self.updateExchange()
@@ -207,9 +207,13 @@ class ExchangeUpdater:
                 existing_map[currency].price = price
                 existing_map[currency].save()
             else:
-                obj = CurrencyFiatPrices(currency=currency, exchange=self.exchange, price=price)
-                obj.save()
+                try:
+                    obj = CurrencyFiatPrices(currency=currency, exchange=self.exchange, price=price)
+                    obj.save()
+                except utils.IntegrityError:
+                    continue
 
+    @transaction.atomic
     def updateExchange(self):
         """Patch the exchange last updated timestamp."""
         self.logger.info("Updating exchange summary")
