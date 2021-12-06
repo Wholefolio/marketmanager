@@ -63,11 +63,10 @@ class TestExchangeUpdater(unittest.TestCase):
         new_data = {"ICX-BNB": {'base': 'BNB', 'quote': 'ICX', 'last': last,
                                 'bid': 0, 'ask': 0, 'volume': volume,
                                 'exchange_id': self.exchange.id}}
-        existing_data = Market.objects.all()
         updater = ExchangeUpdater(self.exchange.id, new_data)
-        updater.update_existing_markets(existing_data)
+        updater.update_existing_markets()
         after_update = Market.objects.all()
-        self.assertEqual(len(existing_data), 1)
+        self.assertEqual(len(after_update), 1)
         self.assertEqual(after_update[0].last, last)
         self.assertEqual(after_update[0].volume, volume)
 
