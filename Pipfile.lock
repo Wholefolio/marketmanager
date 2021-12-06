@@ -164,11 +164,11 @@
         },
         "ccxt": {
             "hashes": [
-                "sha256:720c6b1a89dc434553d938ed6512184d9798d18c33267507e639641c37705c40",
-                "sha256:e101726e8c7cdbce8ca03e8f6992ec5b67bfa5e85086cf89d54f3fcb465f3e39"
+                "sha256:0f5f1c1027e8f1b07ea77e9415f777086e2090b992b2a0d53646ba578ea88538",
+                "sha256:75c75350e4514979308dafcc71d1d84a18481db6f8ebed70d7b654db109b4046"
             ],
             "index": "pypi",
-            "version": "==1.62.96"
+            "version": "==1.63.1"
         },
         "celery": {
             "hashes": [
@@ -308,7 +308,7 @@
         "django-influxdb": {
             "editable": true,
             "git": "https://github.com/wholefolio/django-influxdb.git",
-            "ref": "c2f75e34c64bf81e38391a86335fca5e912c827b"
+            "ref": "95a2e5b7be0413fe7095abeb4a8d924dcf51ee0a"
         },
         "django-redis": {
             "hashes": [
@@ -416,7 +416,7 @@
                 "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff",
                 "sha256:9d643ff0a55b762d5cdb124b8eaa99c66322e2157b69160bc32796e824360e6d"
             ],
-            "markers": "python_version >= '3.5'",
+            "markers": "python_version >= '3'",
             "version": "==3.3"
         },
         "idna-ssl": {
