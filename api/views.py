@@ -4,7 +4,7 @@ import time
 from rest_framework.viewsets import (ViewSet, ReadOnlyModelViewSet)
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.filters import OrderingFilter
+from rest_framework.filters import OrderingFilter, SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from django.utils.decorators import method_decorator
@@ -83,7 +83,8 @@ class MarketViewSet(ReadOnlyModelViewSet):
     queryset = models.Market.objects.all()
     serializer_class = serializers.MarketSerializer
     filter_class = filters.MarketFilter
-    filter_backends = (DjangoFilterBackend, OrderingFilter)
+    filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
+    search_fields = ['base', 'quote']
     ordering_fields = ('name', 'source', 'volume', 'bid', 'ask', 'base')
 
     @method_decorator(cache_page(CACHE_TTL))

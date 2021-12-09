@@ -116,10 +116,17 @@ class AggregatedFiatMarketModel(InfluxModel):
 
 class PairsMarketModel(InfluxModel):
     required_influx_tags = ["base", "quote"]
-    optional_influx_tags = ["symbol", "exchange_id", "ask", "bid", "open", "close", "high", "low"]
+    optional_influx_tags = ["symbol", "exchange_id"]
     sorting_tags = ["_time"]
     fields = [
-        {"name": "last", "type": float}
+        {"name": "last", "type": float},
+        {"name": "ask", "type": float},
+        {"name": "bid", "type": float},
+        {"name": "open", "type": float},
+        {"name": "close", "type": float},
+        {"name": "high", "type": float},
+        {"name": "low", "type": float}
     ]
     measurement = settings.INFLUX_MEASUREMENT_PAIRS
     bucket = settings.INFLUXDB_DEFAULT_BUCKET
+    pivot_tables = True

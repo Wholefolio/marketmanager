@@ -109,7 +109,11 @@ def parse_market_data(data: dict, exchange_id: int):
     update_data = {}
     for symbol, values in data.items():
         base = quote = None
-        if values.get('symbol'):
+        if values.get('base'):
+            base = values.get('base')
+        if values.get('quote'):
+            quote = values.get('quote')
+        if values.get('symbol') and (not base or not quote):
             try:
                 get_base_and_quote(values)
             except ValueError:

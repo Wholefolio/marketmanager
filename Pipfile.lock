@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "1a301e228d66851adf91850a5bbb819b739eb4561d2ef89b185a1528a8989d44"
+            "sha256": "8be1f1cc3e0e4ed2a96a1cc817751e81b0121dcbcf930d47cfeb6d23281bf6ae"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -164,11 +164,11 @@
         },
         "ccxt": {
             "hashes": [
-                "sha256:0f5f1c1027e8f1b07ea77e9415f777086e2090b992b2a0d53646ba578ea88538",
-                "sha256:75c75350e4514979308dafcc71d1d84a18481db6f8ebed70d7b654db109b4046"
+                "sha256:285d03331b7f699bd05c91078efd01516cf97aa705bfa9b1299d21c673d9be39",
+                "sha256:bd5facc08c32d72460f573bb63792db126c94adbe6b22983d2f136644f3ae052"
             ],
             "index": "pypi",
-            "version": "==1.63.1"
+            "version": "==1.63.37"
         },
         "celery": {
             "hashes": [
@@ -275,11 +275,11 @@
         },
         "django": {
             "hashes": [
-                "sha256:51284300f1522ffcdb07ccbdf676a307c6678659e1284f0618e5a774127a6a08",
-                "sha256:e22c9266da3eec7827737cde57694d7db801fedac938d252bf27377cec06ed1b"
+                "sha256:074e8818b4b40acdc2369e67dcd6555d558329785408dcd25340ee98f1f1d5c4",
+                "sha256:df6f5eb3c797b27c096d61494507b7634526d4ce8d7c8ca1e57a4fb19c0738a3"
             ],
             "index": "pypi",
-            "version": "==3.2.9"
+            "version": "==3.2.10"
         },
         "django-celery-results": {
             "hashes": [
@@ -308,7 +308,7 @@
         "django-influxdb": {
             "editable": true,
             "git": "https://github.com/wholefolio/django-influxdb.git",
-            "ref": "a43a8da2e3c5ebce8348250f4c52c9376e4f0811"
+            "ref": "31c7a04baff8f9a35273b50aaafd42869ef108b0"
         },
         "django-redis": {
             "hashes": [
