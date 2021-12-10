@@ -125,7 +125,8 @@ class PairsMarketModel(InfluxModel):
         {"name": "open", "type": float},
         {"name": "close", "type": float},
         {"name": "high", "type": float},
-        {"name": "low", "type": float}
+        {"name": "low", "type": float},
+        {"name": "volume", "type": float}
     ]
     measurement = settings.INFLUX_MEASUREMENT_PAIRS
     bucket = settings.INFLUXDB_DEFAULT_BUCKET

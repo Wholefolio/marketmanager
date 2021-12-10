@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import patch
 from django.conf import settings
-from django.utils import timezone
 from influxdb_client import InfluxDBClient
 
 from marketmanager.updaters import ExchangeUpdater, InfluxUpdater, FiatMarketModel, PairsMarketModel
@@ -171,31 +170,38 @@ class TestInfluxUpdater(unittest.TestCase):
         self.fiatpair = f"{self.base}-USD"
         self.pair_measurement = "tests-pair-mm"
         self.fiat_measurement = "tests-fiat-mm"
-        self.data = {self.pair: {'base': self.base, 'quote': self.quote, 'last': 15.0,
-                                 'bid': 0, 'ask': 0, 'volume': 50,
-                                 'exchange_id': self.exchange.id}}
+        self.data = {self.pair: {'base': self.base, 'quote': self.quote, 'last': 15.0, 'bid': 0, 'ask': 0,
+                                 'volume': 50, 'open': 1, 'close': 1, 'high': 1, 'low': 1,
+                                 'exchange_id': str(self.exchange.id)}}
         self.fiat_data = {self.fiatpair: {
             'base': 'BNBTEST', 'quote': 'USD', 'last': 150.0,
             'bid': 0, 'ask': 0, 'volume': 50,
             'exchange_id': self.exchange.id
         }}
+        self.bucket = "test-influxdb-bucket"
         PairsMarketModel.measurement = self.pair_measurement
+        PairsMarketModel.bucket = self.bucket
         FiatMarketModel.measurement = self.fiat_measurement
+        FiatMarketModel.bucket = self.bucket
         self.updater = InfluxUpdater(self.exchange.id, self.data, self.fiat_data)
         self.influx_client = InfluxDBClient(url=settings.INFLUXDB_URL, token=settings.INFLUXDB_TOKEN)
+        self.buckets_api = self.influx_client.buckets_api()
+        self.org = self._get_org()
+        self.buckets_api.create_bucket(bucket_name=self.bucket, org_id=self.org.id)
         self.query_api = self.influx_client.query_api()
 
     def tearDown(self):
         self.exchange.delete()
-        delete_api = self.influx_client.delete_api()
         # Delete the data from influx
-        for i in [self.pair_measurement, self.fiat_measurement]:
-            delete_api.delete(
-                start=timezone.now() - timezone.timedelta(hours=1),
-                stop=timezone.now(),
-                predicate=f"_measurement=\"{i}\"",
-                bucket=settings.INFLUXDB_DEFAULT_BUCKET,
-                org=settings.INFLUXDB_ORG)
+        bucket_id = self.buckets_api.find_bucket_by_name(self.bucket).id
+        self.buckets_api.delete_bucket(bucket_id)
+
+    def _get_org(self):
+        org_api = self.influx_client.organizations_api()
+        orgs = org_api.find_organizations()
+        for o in orgs:
+            if o.name == settings.INFLUXDB_ORG:
+                return o
 
     def testInit(self):
         """Test that the Updater class was created."""
@@ -204,16 +210,19 @@ class TestInfluxUpdater(unittest.TestCase):
     def test_write_pairs(self):
         """Test inserting pair timeseries into Influx"""
         self.updater._write_pairs()
-        query = f"from(bucket: \"{settings.INFLUXDB_DEFAULT_BUCKET}\") |> range(start: -1m)"
+        query = f"from(bucket: \"{self.bucket}\") |> range(start: -1m)"
         query += f' |> filter(fn: (r) => (r._measurement == "{self.pair_measurement}"))'
         query += f' |> filter(fn: (r) => (r.quote == "{self.quote}"))'
         query += f' |> filter(fn: (r) => (r.base == "{self.base}"))'
+        query += ' |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")'
         tables = self.query_api.query(query, org=settings.INFLUXDB_ORG)
         self.assertEqual(len(tables), 1)
         for i in tables:
             self.assertEqual(len(i.records), 1)
+            print((i.records[0].values))
             record = i.records[0]
-            self.assertEqual(record["_value"], self.data[self.pair]["last"])
+            for key in self.data[self.pair]:
+                self.assertEqual(record[key], self.data[self.pair][key])
 
     def test_write_fiat(self):
         """Test inserting fiat timeseries into Influx"""
@@ -221,7 +230,7 @@ class TestInfluxUpdater(unittest.TestCase):
         fiat_data = utils.prepare_fiat_data(self.fiat_data)
         updater = InfluxUpdater(self.exchange.id, self.data, fiat_data)
         updater._write_fiat()
-        query = f"from(bucket: \"{settings.INFLUXDB_DEFAULT_BUCKET}\") |> range(start: -1m)"
+        query = f"from(bucket: \"{self.bucket}\") |> range(start: -1m)"
         query += f' |> filter(fn: (r) => (r._measurement == "{self.fiat_measurement}"))'
         query += f' |> filter(fn: (r) => (r.currency == "{self.base}"))'
         tables = self.query_api.query(query, org=settings.INFLUXDB_ORG)
