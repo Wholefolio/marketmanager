@@ -22,5 +22,5 @@ app.conf.beat_schedule = {
     'clear_stale_markets': {
         'task': 'api.tasks.clear_stale_markets',
         'schedule': crontab(minute=0, hour=10),
-    }
+    },
 }

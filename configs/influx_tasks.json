@@ -1,0 +1,8 @@
+[
+    {
+        "name": "FiatAggregations",
+        "task_interval": "10m",
+        "destination_bucket": "marketmanager_aggregated",
+        "flux_filename": "fiataggregations.flux"
+    }
+]

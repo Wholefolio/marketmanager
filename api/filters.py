@@ -50,9 +50,9 @@ class ExchangeStatusFilter(FilterSet):
             "time_started": ["lte", "gte"]
         }
     filter_overrides = {
-            django_models.DateTimeField: {
-                "filter_class": IsoDateTimeFilter
-            }
+        django_models.DateTimeField: {
+            "filter_class": IsoDateTimeFilter
+        }
     }
 
 
@@ -65,7 +65,7 @@ class TaskResultFilter(FilterSet):
             "date_done": ["lte", "gte"],
         }
     filter_overrides = {
-            django_models.DateTimeField: {
-                "filter_class": IsoDateTimeFilter
-            }
+        django_models.DateTimeField: {
+            "filter_class": IsoDateTimeFilter
+        }
     }

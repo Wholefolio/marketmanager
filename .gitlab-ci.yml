@@ -1,4 +1,5 @@
 stages:
+  - build
   - test
   - release
   - deploy
@@ -20,6 +21,13 @@ variables:
   DOCKER_INFLUXDB_INIT_BUCKET: marketmanager
   INFLUXDB_TOKEN: $DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
 
+build-image:
+    stage: build
+    script:
+      - docker login -u $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN
+      - docker build -t $REGISTRY:test .
+      - docker push $REGISTRY:test
+
 unittests:
   stage: test
   services:
@@ -27,29 +35,28 @@ unittests:
   - influxdb:2.0.6
   tags:
    - docker
-  image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
+  image: $REGISTRY:test
   script:
     - source .env
     - source `find /root/.local/share/virtualenvs/ -name activate`
-    - sleep 120
     - python3 manage.py test --noinput
 
 linter:
   stage: test
   tags:
     - docker
-  image: registry.gitlab.com/cryptohunters/base-images/flake8:latest
+  image: $REGISTRY:test
   script:
-    - flake8 --exclude="*migrations*,manage.py" --max-line-length=110
+    - pip3 install flake8 && flake8 --exclude="*migrations*,manage.py" --max-line-length=110
 
 integration-tests:
   stage: test
   services:
     - postgres:latest
-    - influxdb:2.0.6
+    - influxdb:2.1.1
   tags:
     - docker
-  image: registry.gitlab.com/cryptohunters/base-images/marketmanager:latest
+  image: $REGISTRY:test
   variables:
     ENABLED_EXCHANGES: binance,bittrex
   script:
@@ -62,8 +69,9 @@ release-image:
     stage: release
     script:
       - docker login -u $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN
-      - docker build -t $REGISTRY:latest .
-      - docker tag $REGISTRY:latest $REGISTRY:${CI_PIPELINE_ID}
+      - docker pull $REGISTRY:test
+      - docker tag $REGISTRY:test $REGISTRY:${CI_PIPELINE_ID}
+      - docker tag $REGISTRY:test $REGISTRY:latest
       - docker push $REGISTRY:${CI_PIPELINE_ID}
       - docker push $REGISTRY:latest
 

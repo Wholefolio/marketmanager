@@ -29,7 +29,7 @@ MARKET_STALE_DAYS = os.environ.get("MARKET_STALE_DAYS", 7)
 EXCHANGE_TIMEOUT = os.environ.get("EXCHANGE_TIMEOUT", 120)
 EXCHANGE_DEFAULT_FETCH_INTERVAL = os.environ.get("EXCHANGE_DEFAULT_FETCH_INTERVAL", 300)
 ENABLED_EXCHANGES = os.environ.get("ENABLED_EXCHANGES", "")
-FIAT_SYMBOLS = os.environ.get("FIAT_SYMBOLS", ["USD", "USDT"])
+FIAT_SYMBOLS = os.environ.get("FIAT_SYMBOLS", ["USD", "USDT", "USDC", "BUSD"])
 
 if ENABLED_EXCHANGES:
     ENABLED_EXCHANGES = ENABLED_EXCHANGES.split(",")
@@ -66,6 +66,8 @@ CACHE_TTL = 60
 
 INFLUX_MEASUREMENT_FIAT_MARKETS = "currencies_fiat"
 INFLUX_MEASUREMENT_PAIRS = "currency_pairs"
+INFLUX_AGGREGATION_BUCKET = "marketmanager_aggregated"
+INFLUXDB_TIMEOUT = os.environ.get("INFLUXDB_TIMEOUT", 5000)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -99,10 +101,10 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS':
         ('django_filters.rest_framework.DjangoFilterBackend',),
     'DEFAULT_PAGINATION_CLASS':
-        'rest_framework.pagination.LimitOffsetPagination',
+        'marketmanager.pagination.ResultsPagination',
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',),
-    'PAGE_SIZE': 10000
+    'PAGE_SIZE': 100
 }
 # Application definition
 INSTALLED_APPS = [
@@ -114,6 +116,7 @@ INSTALLED_APPS = [
     'django_celery_results',
     'django_filters',
     'daemon',
+    "django_influxdb",
     'api',
 ]
 

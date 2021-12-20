@@ -1,7 +1,8 @@
 from django.core.management.base import BaseCommand
-import datetime
 import ccxt
+import json
 from api.models import Exchange, ExchangeStatus
+from api.serializers import ExchangeSerializer
 
 
 class Command(BaseCommand):
@@ -13,8 +14,10 @@ class Command(BaseCommand):
                             help="List all ccxt exchanges", required=False)
         parser.add_argument('--enabled', action="store_true", dest="enabled",
                             help="Get all enabled exchanges", required=False)
-        parser.add_argument('--blocked', action="store_true", dest="blocked",
-                            help="Get all blocked exchanges", required=False)
+        parser.add_argument('--disabled', action="store_true", dest="disabled",
+                            help="Get all disabled exchanges", required=False)
+        parser.add_argument('--json', action="store_true", dest="json",
+                            help="Output the exchanges to JSON")
 
     def handle(self, *args, **options):
         if options["available"]:
@@ -27,20 +30,20 @@ class Command(BaseCommand):
             return
         if options["enabled"]:
             exchanges = Exchange.objects.filter(enabled=True)
-        elif options["blocked"]:
+        elif options["disabled"]:
             exchanges = Exchange.objects.filter(enabled=False)
         else:
             exchanges = Exchange.objects.all()
+        if options['json']:
+            serializer = ExchangeSerializer(exchanges, many=True)
+            self.stdout.write(self.style.SUCCESS(json.dumps(serializer.data, indent=4)))
+            return
         for exchange in exchanges:
-            msg = 'ID: {}, Name: {}, Interval: {}, Enabled: {}, Fiat: {}'.format(
-                           exchange.id, exchange.name,
-                           str(datetime.timedelta(seconds=exchange.interval)),
-                           exchange.enabled,
-                           exchange.fiat_markets)
+            msg = f'ID: {exchange.id}, Name: {exchange.name}, Interval: {exchange.interval},\
+Enabled: {exchange.enabled}, Fiat: {exchange.fiat_markets}'
             try:
                 status = ExchangeStatus.objects.get(exchange=exchange)
-                msg += ", Last run: {}, Running: {}".format(status.last_run,
-                                                            status.running)
+                msg += f", Last run: {exchange.updated}, Running: {status.running}"
             except ExchangeStatus.DoesNotExist:
                 pass
             self.stdout.write(self.style.SUCCESS(msg))

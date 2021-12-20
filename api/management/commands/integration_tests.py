@@ -17,7 +17,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f"Missing market {market}"))
 
     def get_ccxt_markets(self, exchange):
-        ccxt_exchange = getattr(ccxt, exchange.name)()
+        ccxt_exchange = getattr(ccxt, exchange.name.lower())()
         markets = ccxt_exchange.fetch_markets()
         return markets
 
