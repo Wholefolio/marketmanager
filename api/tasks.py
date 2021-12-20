@@ -1,5 +1,6 @@
 import ccxt
 import logging
+import traceback
 from copy import deepcopy
 from django.db.utils import OperationalError
 from django_celery_results.models import TaskResult
@@ -12,7 +13,7 @@ from marketmanager.updaters import ExchangeUpdater, InfluxUpdater
 from marketmanager.celery import app
 from api.models import Exchange, Market
 from api import utils
-from marketmanager.utils import set_running_status
+from marketmanager.utils import set_running_status, prepare_fiat_data
 
 
 class LogErrorsTask(Task):
@@ -57,18 +58,24 @@ def fetch_exchange_data(self, exchange_id: int):
     logger.debug("Raw data: {}".format(data))
     # Parse the data
     logger.info("Parsing the data.")
-    update_data = utils.parse_market_data(data, exchange_id)
+    market_data = utils.parse_market_data(data, exchange_id)
     # Create/update the data
     logger.info("Starting updaters.")
     result = None
+    fiat_data = prepare_fiat_data(market_data)
     try:
-        influx_data = deepcopy(update_data)
-        influx_updater = InfluxUpdater(exchange_id, influx_data, self.request.id)
+        influx_data = deepcopy(market_data)
+        influx_updater = InfluxUpdater(exchange_id, influx_data, fiat_data, self.request.id)
         influx_updater.write()
-        updater = ExchangeUpdater(exchange_id, update_data, self.request.id)
+    except Exception as e:
+        traceback.print_exc()
+        logger.critical("Influx updater failed. Exception: {}".format(e))
+    try:
+        updater = ExchangeUpdater(exchange_id, market_data, fiat_data, self.request.id)
         result = updater.run()
-    except Exception:
-        logger.critical("Critical failure within updaters - check logs")
+    except Exception as e:
+        traceback.print_exc()
+        logger.critical("DB updater failed. Exception: {}".format(e))
     set_running_status(exchange, running=False)
     return result
 

@@ -46,7 +46,7 @@ class MarketManager(object):
                 )
                 obj.save()
 
-    def checkTaskResult(self, status):
+    def checkTaskResult(self, status: ExchangeStatus):
         """Check the status of a running exchange in celery."""
         self.logger.info("Running poller check on {}".format(status.exchange))
         if not status.time_started:
@@ -72,7 +72,7 @@ class MarketManager(object):
         status.last_run_status = "Timeout reached"
         status.save()
 
-    def checkExchange(self, exchange, status):
+    def checkExchange(self, exchange: Exchange, status: ExchangeStatus) -> bool:
         """Check if the exchange data is meant to be fetched."""
         if not exchange.enabled:
             msg = "Exchange {} is disabled: Skipping".format(exchange.name)
@@ -86,11 +86,9 @@ class MarketManager(object):
             current_time = timezone.now().timestamp()
             last_run = exchange.last_data_fetch.timestamp()
             interval = int(exchange.interval)
-            msg = "Running check for {}.".format(exchange.name)
-            msg += " Last run: {},".format(last_run)
-            msg += " Interval: {},".format(interval)
-            msg += " Current time: {}".format(current_time)
-            msg += " Delta: {}".format(current_time-last_run)
+            msg = f"Running check for {exchange.name}."
+            msg += f" Last run: {last_run}, Interval: {interval}, Current time: {current_time}, "
+            msg += " Delta: {}".format(current_time - last_run)
             self.logger.debug(msg)
             if last_run + interval >= current_time:
                 return False
@@ -126,7 +124,7 @@ class MarketManager(object):
             statuses = []
         return statuses
 
-    def poller(self):
+    def poller(self) -> None:
         """Poller - checks the status of each RUNNING exchange."""
         self.logger.info("Starting poller.")
         while True:
@@ -136,22 +134,20 @@ class MarketManager(object):
                 continue
             for status in statuses:
                 if not status.last_run_id:
-                    msg = "Missing last run id for exchange [{}]".format(
-                                                              status.exchange)
-                    self.logger.info(msg)
+                    self.logger.info(f"Missing last run id for exchange [{status.exchange}]")
                     continue
                 self.checkTaskResult(status)
             msg = "Finished running through all exchanges."
             self.logger.info(msg)
             sleep(10)
 
-    def scheduler(self):
+    def scheduler(self) -> None:
         """Event loop which can be called as a separate Process.
 
         Workflow:
         1) Get the exchanges
         2) Run checks if the exchange should be run(enabled, time)
-        3) Send the request to fetch the exchange data to coiner
+        3) Submit a task to celery
         """
         self._checkEnabledExchanges()
         self.logger.info("Starting main event loop.")

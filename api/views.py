@@ -4,7 +4,7 @@ import time
 from rest_framework.viewsets import (ViewSet, ReadOnlyModelViewSet)
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.filters import OrderingFilter
+from rest_framework.filters import OrderingFilter, SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from django.utils.decorators import method_decorator
@@ -16,8 +16,8 @@ from applib.daemonclient import Client
 from api import models
 from api import serializers
 from api import filters
-from api import models_influx
 from api.tasks import fetch_exchange_data
+from django_influxdb.views import ListViewSet as InfluxListViewSet
 
 CACHE_TTL = getattr(settings, 'CACHE_TTL', 120)
 
@@ -83,7 +83,8 @@ class MarketViewSet(ReadOnlyModelViewSet):
     queryset = models.Market.objects.all()
     serializer_class = serializers.MarketSerializer
     filter_class = filters.MarketFilter
-    filter_backends = (DjangoFilterBackend, OrderingFilter)
+    filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
+    search_fields = ['base', 'quote']
     ordering_fields = ('name', 'source', 'volume', 'bid', 'ask', 'base')
 
     @method_decorator(cache_page(CACHE_TTL))
@@ -91,28 +92,28 @@ class MarketViewSet(ReadOnlyModelViewSet):
         return super(MarketViewSet, self).dispatch(*args, **kwargs)
 
 
-class MarketHistoricalData(ViewSet):
+class MarketHistoricalData(InfluxListViewSet):
     """Endpoint for market historical data from InfluxDB"""
+    additional_filter_params = ["exchange_id", "time_end"]
+    required_filter_params = ["base", "quote", "time_start"]
+    sorting_tags = ["timestamp", "base", "quote"]
+    influx_model = models.PairsMarketModel
 
-    def list(self, request, ):
-        if ("base" not in request.GET and "quote" not in request.GET)\
-           or "timerange" not in request.GET:
-            return Response(
-                {"error": "Missing required parameters - exchange_id/quote and timerange"},
-                status=400
-            )
-        tags = {}
-        timerange = request.GET.get("timerange")
-        for i in ["exchange_id", "quote", "base"]:
-            value = request.GET.get(i)
-            if value:
-                try:
-                    value = int(value)
-                except ValueError:
-                    pass
-                tags[i] = value
-        data = models_influx.PairsMarketModel(**tags).filter(timerange)
-        return Response(data)
+
+class AggregatedFiatHistoricalData(InfluxListViewSet):
+    """Endpoint for fiat historical data from InfluxDB"""
+    additional_filter_params = ["time_end"]
+    required_filter_params = ["currency", "time_start"]
+    sorting_tags = ["timestamp"]
+    influx_model = models.AggregatedFiatMarketModel
+
+
+class ExchangeFiatHistoricalData(InfluxListViewSet):
+    """Endpoint for fiat historical data from InfluxDB"""
+    additional_filter_params = ["time_end", "exchange_id"]
+    required_filter_params = ["currency", "time_start"]
+    sorting_tags = ["timestamp"]
+    influx_model = models.FiatMarketModel
 
 
 class ExchangeStatusViewSet(ReadOnlyModelViewSet):

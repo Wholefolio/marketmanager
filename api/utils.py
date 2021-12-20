@@ -4,9 +4,11 @@ from ccxt.base import exchange, errors
 from api.models import Exchange as ExchangeModel
 
 
+logger = logging.getLogger("marketmanager")
+
+
 def check_fiat_markets(ccxt_exchange: exchange):
     """Check if the ccxt exchange has markets that we consider fiat"""
-    logger = logging.getLogger("marketmanager")
     if hasattr(ccxt_exchange, "fetch_currencies"):
         logger.info("Exchange has fetch currencies")
         info = ccxt_exchange.fetch_currencies()
@@ -41,11 +43,12 @@ def fetch_tickers(ccxt_exchange: exchange, exchange: ExchangeModel):
                 except (errors.DDoSProtection, errors.RequestTimeout):
                     break
         elif ccxt_exchange.has.get("fetchMarkets"):
-            logger.info("Exchange {} does have the fetchMarkets method".format(name))
+            logger.info("Exchange {} has the fetchMarkets method".format(name))
             markets = ccxt_exchange.fetchMarkets()
             for market in markets:
                 # We only want USD markets if the exchange is fiat
                 if market["quote"] not in settings.FIAT_SYMBOLS and exchange.fiat_markets:
+                    logger.debug("Skipping {}".format(market))
                     continue
                 market_name = market["symbol"]
                 try:
@@ -64,28 +67,79 @@ def fetch_tickers(ccxt_exchange: exchange, exchange: ExchangeModel):
     return data
 
 
-def parse_market_data(data: dict, exchange_id: int):
-    """Build meaningful objects from the exchange data for DB insertion"""
-    update_data = {}
+def get_split_symbol(market: str):
+    """Get the symbol we are going to use to split the market pair into base+quote"""
+    if "/" in market:
+        split_symbol = "/"
+    elif "-" in market:
+        split_symbol = "-"
+    elif "_" in market:
+        split_symbol = "_"
+    else:
+        raise ValueError("Couldn't determine split symbol")
+    return split_symbol
 
+
+def get_base_and_quote(market_info: dict):
+    """Get the market base/quote from market['info']"""
+    base = quote = None
+    if market_info.get("quote"):
+        quote = market_info['quote']
+    if market_info.get("underlying"):
+        # Exchange FTX doesn't add quote/base info but underlying
+        quote = market_info['underlying']
+        split_symbol = get_split_symbol(market_info['name'])
+        start = market_info['name'].find(quote)
+        if start == 0:
+            # quote is in the start of the string - the rest is the base
+            base = market_info['name'][len(quote) + 1:]
+        else:
+            base = market_info['name'][:start - 1]
+        return base, quote
+    for key in ["symbol", "market", "name"]:
+        if key in market_info:
+            split_symbol = get_split_symbol(market_info[key])
+            base, quote = market_info[key].split(split_symbol)
+            return base, quote
+    return base, quote
+
+
+def parse_market_data(data: dict, exchange_id: int):
+    """Build a dict of symbol->values from the exchange data for DB insertion"""
+    update_data = {}
     for symbol, values in data.items():
-        symbol_found = False
-        if values.get('symbol'):
-            base, quote = values['symbol'].split("/")
-            symbol_found = True
-        elif values.get('info'):
-            if "symbol" in values["info"]:
-                base, quote = values['info']['symbol'].split("_")
-                symbol_found = True
-        if not symbol_found:
-            base, quote = symbol.split("/")
+        base = quote = None
+        if values.get('base'):
+            base = values.get('base')
+        if values.get('quote'):
+            quote = values.get('quote')
+        if values.get('symbol') and (not base or not quote):
+            try:
+                get_base_and_quote(values)
+            except ValueError:
+                logger.debug(f'Couldn\'t find base and quote from values symbol: {values["symbol"]}')
+        if values.get('info') and (not base or not quote):
+            try:
+                get_base_and_quote(values['info'])
+            except ValueError:
+                logger.debug(f'Couldn\'t find base and quote from values info: {values["info"]}')
+        if not base or not quote:
+            try:
+                base, quote = symbol.split(get_split_symbol(symbol))
+            except ValueError:
+                logger.debug(f"Couldn't find base and quote from symbol name: {symbol}")
+                continue
+        # Normalize the name
         name = "{}-{}".format(base, quote)
         # Set them to 0 as there might be nulls
         temp = {"last": 0, "bid": 0, "ask": 0, "high": 0, "low": 0, "open": 0, "close": 0,
                 "baseVolume": 0}
-        for item in temp.keys():
-            if values.get(item):
-                temp[item] = values[item]
+        for key in temp.keys():
+            if values.get(key):
+                # Filter out those who don't have valid last values
+                if key == "last" and values[key] <= 0:
+                    continue
+                temp[key] = values[key]
         update_data[name] = {"base": base,
                              "quote": quote,
                              "last": temp["last"],

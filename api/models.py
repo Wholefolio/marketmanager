@@ -1,6 +1,7 @@
 """API models."""
 from django.db import models
 from django.conf import settings
+from django_influxdb.models import InfluxModel
 
 
 class Exchange(models.Model):
@@ -33,9 +34,9 @@ class Exchange(models.Model):
 
 class Market(models.Model):
     """A market is a place to trade 2 coins within each exchange."""
-    name = models.CharField(max_length=24)
-    base = models.CharField(max_length=20)
-    quote = models.CharField(max_length=25)
+    name = models.CharField(max_length=48)
+    base = models.CharField(max_length=32)
+    quote = models.CharField(max_length=32)
     exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE)
     volume = models.FloatField(null=True)
     last = models.FloatField()
@@ -56,6 +57,17 @@ class Market(models.Model):
     class Meta:
         db_table = "markets"
         unique_together = (('name', 'exchange'))
+
+
+class CurrencyFiatPrices(models.Model):
+    """Model for current fiat prices per each symbol"""
+    currency = models.CharField(unique=True, max_length=64)
+    exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE)
+    price = models.FloatField()
+
+    class Meta:
+        db_table = "currency_fiat_prices"
+        unique_together = (('currency', 'exchange'))
 
 
 class ExchangeStatus(models.Model):
@@ -79,3 +91,43 @@ class ExchangeStatus(models.Model):
     class Meta():
         """Define the db table name."""
         db_table = "exchange_status"
+
+
+class FiatMarketModel(InfluxModel):
+    required_influx_tags = ["currency"]
+    optional_influx_tags = ["exchange_id"]
+    sorting_tags = ["_time"]
+    fields = [
+        {"name": "price", "type": float},
+    ]
+    measurement = settings.INFLUX_MEASUREMENT_FIAT_MARKETS
+    bucket = settings.INFLUXDB_DEFAULT_BUCKET
+
+
+class AggregatedFiatMarketModel(InfluxModel):
+    required_influx_tags = ["currency"]
+    sorting_tags = ["_time"]
+    fields = [
+        {"name": "price", "type": float},
+    ]
+    measurement = settings.INFLUX_MEASUREMENT_FIAT_MARKETS
+    bucket = settings.INFLUX_AGGREGATION_BUCKET
+
+
+class PairsMarketModel(InfluxModel):
+    required_influx_tags = ["base", "quote"]
+    optional_influx_tags = ["symbol", "exchange_id"]
+    sorting_tags = ["_time"]
+    fields = [
+        {"name": "last", "type": float},
+        {"name": "ask", "type": float},
+        {"name": "bid", "type": float},
+        {"name": "open", "type": float},
+        {"name": "close", "type": float},
+        {"name": "high", "type": float},
+        {"name": "low", "type": float},
+        {"name": "volume", "type": float}
+    ]
+    measurement = settings.INFLUX_MEASUREMENT_PAIRS
+    bucket = settings.INFLUXDB_DEFAULT_BUCKET
+    pivot_tables = True

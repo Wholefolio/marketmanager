@@ -8,7 +8,7 @@ from marketmanager.healthcheck import Health
 
 
 urlpatterns = [
-    url(r'^healthz/',  Health.as_view({"get": "get"})),
+    url(r'^healthz/', Health.as_view({"get": "get"})),
     url(r'^', include('api.urls', namespace="api")),
 ]
 PY_ENV = os.environ.get('PY_ENV')
