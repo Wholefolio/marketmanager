@@ -94,7 +94,7 @@ class TestExchangeUpdater(unittest.TestCase):
         mock_result.return_value = data_map
         self.updater.summarize_data()
         quote = self.data["ICX-BNB"]["quote"]
-        exchange_volume = self.data["ICX-BNB"]["volume"] * data_map[quote] * self.last
+        exchange_volume = self.data["ICX-BNB"]["volume"] * data_map[quote]
         exchange = Exchange.objects.get(name="Test")
         self.assertEqual(exchange.volume, exchange_volume)
         self.assertEqual(exchange.top_pair, "ICX-BNB")
@@ -105,7 +105,7 @@ class TestExchangeUpdater(unittest.TestCase):
         mock_result.return_value = {}
         self.updater.summarize_data()
         exchange = Exchange.objects.get(name="Test")
-        self.assertFalse(exchange.volume, 0)
+        self.assertFalse(exchange.volume)
         self.assertFalse(exchange.top_pair)
 
     @patch("marketmanager.updaters.appRequest")

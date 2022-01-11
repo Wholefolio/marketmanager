@@ -93,6 +93,21 @@ class ExchangeUpdater:
         quote_markets = Market.objects.filter(quote__in=settings.FIAT_SYMBOLS).values()
         return self.create_map(quote_markets, "base", "last")
 
+    def get_fiat_symbol_rates(self):
+        """Get all fiat symbols and rates."""
+        url = "{}/internal/fiat/".format(settings.COIN_MANAGER_URL)
+        response = appRequest("get", url)
+        if "error" in response:
+            msg = "Error during CoinManager request: %s" % response['error']
+            self.logger.error(msg)
+            return {}
+        if response["count"] == 0:
+            # There are no entries - make a effort to get some from our local
+            # markets with base USD
+            self.logger.warning("There are no currencies in CoinManager!")
+            return {}
+        return self.create_map(response['results'], "symbol", "rate")
+
     def get_base_prices(self):
         """Get the price list from CoinManager or from a market with a currency base USD"""
         local_data = self.get_local_fiat_prices()
@@ -159,7 +174,7 @@ class ExchangeUpdater:
             currency_prices = self.fiat_data
         else:
             currency_prices = base_prices
-
+        fiat_symbol_rates = self.get_fiat_symbol_rates()
         self.logger.debug(f"Base prices: {currency_prices}")
         if not currency_prices:
             self.logger.error("Can't summarize exchange data due to no currency prices")
@@ -168,10 +183,14 @@ class ExchangeUpdater:
         top_pair_volume = 0
         top_pair = ""
         for name, values in self.market_data.items():
-            if values['quote'] not in settings.FIAT_SYMBOLS:
+            if values['quote'] in fiat_symbol_rates:
+                quote_price = fiat_symbol_rates[values['quote']]
+            elif values['quote'] not in settings.FIAT_SYMBOLS:
                 quote_price = currency_prices.get(values["quote"])
             else:
                 quote_price = 1
+            if values['base'] in fiat_symbol_rates:
+                base_price = fiat_symbol_rates[values['base']]
             if values['base'] not in settings.FIAT_SYMBOLS:
                 base_price = currency_prices.get(values['base'])
             else:
@@ -180,9 +199,9 @@ class ExchangeUpdater:
                 self.logger.debug(f"Missing fiat price for quote and base {name}")
                 continue
             if quote_price and values['last']:
-                volume_usd = values['volume'] * quote_price * values['last']
+                volume_usd = values['volume'] * quote_price
             elif base_price and values['last']:
-                volume_usd = values['volume'] * (base_price / values['last'])
+                volume_usd = values['volume'] / base_price
             else:
                 continue
             if volume_usd >= top_pair_volume:
