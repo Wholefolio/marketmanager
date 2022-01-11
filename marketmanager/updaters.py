@@ -177,31 +177,33 @@ class ExchangeUpdater:
         fiat_symbol_rates = self.get_fiat_symbol_rates()
         self.logger.debug(f"Base prices: {currency_prices}")
         if not currency_prices:
-            self.logger.error("Can't summarize exchange data due to no currency prices")
+            self.logger.error("Can't summarize exchange data due to no currency fiat prices")
             return
         exchange_volume = 0
         top_pair_volume = 0
         top_pair = ""
         for name, values in self.market_data.items():
-            if values['quote'] in fiat_symbol_rates:
-                quote_price = fiat_symbol_rates[values['quote']]
-            elif values['quote'] not in settings.FIAT_SYMBOLS:
-                quote_price = currency_prices.get(values["quote"])
-            else:
+            if values['quote'] in settings.FIAT_SYMBOLS:
                 quote_price = 1
-            if values['base'] in fiat_symbol_rates:
-                base_price = fiat_symbol_rates[values['base']]
-            if values['base'] not in settings.FIAT_SYMBOLS:
-                base_price = currency_prices.get(values['base'])
+            elif values['quote'] in fiat_symbol_rates:
+                quote_price = fiat_symbol_rates[values['quote']]
             else:
+                quote_price = currency_prices.get(values["quote"], 0)
+            if values['base' in settings.FIAT_SYMBOLS]:
                 base_price = 1
+            elif values['base'] in fiat_symbol_rates:
+                base_price = fiat_symbol_rates[values['base']]
+            else:
+                base_price = currency_prices.get(values['base'], 0)
             if not quote_price and not base_price:
                 self.logger.debug(f"Missing fiat price for quote and base {name}")
                 continue
-            if quote_price and values['last']:
-                volume_usd = values['volume'] * quote_price
-            elif base_price and values['last']:
-                volume_usd = values['volume'] / base_price
+            # The volume is baseVolume so calculate based on that to USD
+            if base_price:
+                volume_usd = values['volume'] * base_price
+            elif quote_price and values['last']:
+                # We don't have the base_price - use the quote USD price and last
+                volume_usd = values['volume'] * values['last'] * quote_price
             else:
                 continue
             if volume_usd >= top_pair_volume:
