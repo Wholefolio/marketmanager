@@ -203,8 +203,7 @@ class ExchangeUpdater:
                 continue
             # The volume is baseVolume so calculate based on that to USD
             if base_price:
-                if name == "SOS-USDT":
-                    print("HERE", values, base_price)
+                print("HERE", values)
                 volume_usd = values['volume'] * base_price
             elif quote_price and values['last']:
                 # We don't have the base_price - use the quote USD price and last
