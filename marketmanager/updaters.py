@@ -1,3 +1,5 @@
+from email.mime import base
+from email.quoprimime import quote
 import logging
 from django.utils import timezone
 from django.db import transaction, utils
@@ -189,17 +191,22 @@ class ExchangeUpdater:
                 quote_price = fiat_symbol_rates[values['quote']]
             else:
                 quote_price = currency_prices.get(values["quote"], 0)
-            if values['base'] in settings.FIAT_SYMBOLS:
-                base_price = 1
-            elif values['base'] in fiat_symbol_rates:
-                base_price = fiat_symbol_rates[values['base']]
+            if quote_price:
+                base_price = quote_price * values['last']
             else:
-                base_price = currency_prices.get(values['base'], 0)
+                if values['base'] in settings.FIAT_SYMBOLS:
+                    base_price = 1
+                elif values['base'] in fiat_symbol_rates:
+                    base_price = fiat_symbol_rates[values['base']]
+                else:
+                    base_price = currency_prices.get(values['base'], 0)
             if not quote_price and not base_price:
                 self.logger.debug(f"Missing fiat price for quote and base {name}")
                 continue
             # The volume is baseVolume so calculate based on that to USD
             if base_price:
+                if name == "SOS-USDT":
+                    print("HERE", values, base_price)
                 volume_usd = values['volume'] * base_price
             elif quote_price and values['last']:
                 # We don't have the base_price - use the quote USD price and last
