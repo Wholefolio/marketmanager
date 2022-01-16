@@ -1,5 +1,3 @@
-from email.mime import base
-from email.quoprimime import quote
 import logging
 from django.utils import timezone
 from django.db import transaction, utils
