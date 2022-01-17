@@ -183,27 +183,27 @@ class ExchangeUpdater:
         top_pair_volume = 0
         top_pair = ""
         for name, values in self.market_data.items():
+            print(currency_prices)
             if values['quote'] in settings.FIAT_SYMBOLS:
                 quote_price = 1
             elif values['quote'] in fiat_symbol_rates:
                 quote_price = fiat_symbol_rates[values['quote']]
             else:
                 quote_price = currency_prices.get(values["quote"], 0)
-            if quote_price:
-                base_price = quote_price * values['last']
+            if values['base'] in settings.FIAT_SYMBOLS:
+                base_price = 1
+            elif quote_price:
+                base_price = quote_price / values['last']
+            elif values['base'] in fiat_symbol_rates:
+                base_price = fiat_symbol_rates[values['base']]
             else:
-                if values['base'] in settings.FIAT_SYMBOLS:
-                    base_price = 1
-                elif values['base'] in fiat_symbol_rates:
-                    base_price = fiat_symbol_rates[values['base']]
-                else:
-                    base_price = currency_prices.get(values['base'], 0)
+                base_price = currency_prices.get(values['base'], 0)
             if not quote_price and not base_price:
                 self.logger.debug(f"Missing fiat price for quote and base {name}")
                 continue
+            print(base_price, quote_price, values)
             # The volume is baseVolume so calculate based on that to USD
             if base_price:
-                print("HERE", values)
                 volume_usd = values['volume'] * base_price
             elif quote_price and values['last']:
                 # We don't have the base_price - use the quote USD price and last
@@ -219,8 +219,7 @@ class ExchangeUpdater:
         self.exchange.top_pair_volume = top_pair_volume
         self.exchange.save()
         msg = "Exchange volume and top pairs saved successfully!"
-        msg += "Volume: {}, Top Pair: {}, Top Pair Volume: {}".format(exchange_volume,
-                                                                      top_pair, top_pair_volume)
+        msg += f"Volume: {exchange_volume}, Top Pair: {top_pair}, Top Pair Volume: {top_pair_volume}"
         self.logger.info(msg)
 
     def update_fiat_prices(self):
