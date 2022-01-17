@@ -192,7 +192,7 @@ class ExchangeUpdater:
                 quote_price = currency_prices.get(values["quote"], 0)
             if values['base'] in settings.FIAT_SYMBOLS:
                 base_price = 1
-            elif quote_price:
+            elif quote_price and values['last'] > 0:
                 base_price = quote_price / values['last']
             elif values['base'] in fiat_symbol_rates:
                 base_price = fiat_symbol_rates[values['base']]
