@@ -94,7 +94,7 @@ class TestExchangeUpdater(unittest.TestCase):
         mock_result.return_value = data_map
         self.updater.summarize_data()
         quote = self.data["ICX-BNB"]["quote"]
-        exchange_volume = self.data["ICX-BNB"]["volume"] * data_map[quote] / self.data["ICX-BNB"]["last"]
+        exchange_volume = self.data["ICX-BNB"]["volume"] * data_map[quote] * self.data["ICX-BNB"]["last"]
         exchange = Exchange.objects.get(name="Test")
         self.assertEqual(exchange.volume, exchange_volume)
         self.assertEqual(exchange.top_pair, "ICX-BNB")
@@ -219,7 +219,6 @@ class TestInfluxUpdater(unittest.TestCase):
         self.assertEqual(len(tables), 1)
         for i in tables:
             self.assertEqual(len(i.records), 1)
-            print((i.records[0].values))
             record = i.records[0]
             for key in self.data[self.pair]:
                 self.assertEqual(record[key], self.data[self.pair][key])
