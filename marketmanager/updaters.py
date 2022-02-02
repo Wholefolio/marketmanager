@@ -88,6 +88,33 @@ class ExchangeUpdater:
             market = Market(name=name, **data)
             market.save()
 
+    def calculate_pair_volume(self, name: str, values: dict,
+                              fiat_symbol_rates: dict, currency_prices: dict):
+        """Calculate a market pair volume in fiat"""
+        if values['quote'] in settings.FIAT_SYMBOLS:
+            quote_price = 1
+        elif values['quote'] in fiat_symbol_rates:
+            quote_price = fiat_symbol_rates[values['quote']]
+        else:
+            quote_price = currency_prices.get(values["quote"], 0)
+        if values['base'] in settings.FIAT_SYMBOLS:
+            base_price = 1
+        elif quote_price and values['last'] > 0:
+            base_price = quote_price * values['last']
+        elif values['base'] in fiat_symbol_rates:
+            base_price = fiat_symbol_rates[values['base']]
+        else:
+            base_price = currency_prices.get(values['base'], 0)
+        if not quote_price and not base_price:
+            self.logger.debug(f"Missing fiat price for quote and base {name}")
+            return None
+        # The volume is baseVolume so calculate based on that to USD
+        if base_price:
+            return values['volume'] * base_price
+        elif quote_price and values['last']:
+            # We don't have the base_price - use the quote USD price and last
+            return values['volume'] * values['last'] * quote_price
+
     def get_local_fiat_prices(self):
         """Get markets which have a quote in fiat."""
         quote_markets = Market.objects.filter(quote__in=settings.FIAT_SYMBOLS).values()
@@ -183,32 +210,8 @@ class ExchangeUpdater:
         top_pair_volume = 0
         top_pair = ""
         for name, values in self.market_data.items():
-            if values['quote'] in settings.FIAT_SYMBOLS:
-                quote_price = 1
-            elif values['quote'] in fiat_symbol_rates:
-                quote_price = fiat_symbol_rates[values['quote']]
-            else:
-                quote_price = currency_prices.get(values["quote"], 0)
-            if values['base'] in settings.FIAT_SYMBOLS:
-                base_price = 1
-            elif quote_price and values['last'] > 0:
-                base_price = quote_price * values['last']
-            elif values['base'] in fiat_symbol_rates:
-                base_price = fiat_symbol_rates[values['base']]
-            else:
-                base_price = currency_prices.get(values['base'], 0)
-            if not quote_price and not base_price:
-                self.logger.debug(f"Missing fiat price for quote and base {name}")
-                continue
-            # The volume is baseVolume so calculate based on that to USD
-            if values["base"] == "XVG" and values["quote"] == "BTC":
-                print(values, base_price, quote_price)
-            if base_price:
-                volume_usd = values['volume'] * base_price
-            elif quote_price and values['last']:
-                # We don't have the base_price - use the quote USD price and last
-                volume_usd = values['volume'] * values['last'] * quote_price
-            else:
+            volume_usd = self.calculate_pair_volume(name, values, fiat_symbol_rates, currency_prices)
+            if not volume_usd:
                 continue
             if volume_usd >= top_pair_volume:
                 top_pair = name
