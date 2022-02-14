@@ -1,4 +1,4 @@
-FROM python:3.7.10-alpine
+FROM python:3.8.10-alpine
 
 
 RUN apk add postgresql-dev git gcc linux-headers musl-dev zlib-dev jpeg-dev python3-dev g++ libffi-dev
