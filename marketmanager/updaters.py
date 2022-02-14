@@ -91,6 +91,7 @@ class ExchangeUpdater:
     def calculate_pair_volume(self, name: str, values: dict,
                               fiat_symbol_rates: dict, currency_prices: dict):
         """Calculate a market pair volume in fiat"""
+        base_price = quote_price = None
         if values['quote'] in settings.FIAT_SYMBOLS:
             quote_price = 1
         elif values['quote'] in fiat_symbol_rates:
@@ -99,8 +100,8 @@ class ExchangeUpdater:
             quote_price = currency_prices.get(values["quote"], 0)
         if values['base'] in settings.FIAT_SYMBOLS:
             base_price = 1
-        elif quote_price and values['last'] > 0:
-            base_price = quote_price * values['last']
+        elif quote_price and values['last'] > 0 and values['quote'] in settings.FIAT_SYMBOLS:
+            base_price = values['last']
         elif values['base'] in fiat_symbol_rates:
             base_price = fiat_symbol_rates[values['base']]
         else:
@@ -212,6 +213,7 @@ class ExchangeUpdater:
         for name, values in self.market_data.items():
             volume_usd = self.calculate_pair_volume(name, values, fiat_symbol_rates, currency_prices)
             if not volume_usd:
+                self.logger.debug(f"Couldn't calculate volume for pair {name}. Values: {values}")
                 continue
             if volume_usd >= top_pair_volume:
                 top_pair = name
