@@ -83,6 +83,8 @@ def get_split_symbol(market: str):
 def get_base_and_quote(market_info: dict):
     """Get the market base/quote from market['info']"""
     base = quote = None
+    if not isinstance(market_info, dict):
+        return base, quote
     if market_info.get("quote"):
         quote = market_info['quote']
     if market_info.get("underlying"):
