@@ -10,7 +10,7 @@ python_version = '3.8'
 ccxt = "*"
 cryptography = "==3.3"
 celery = "==4.4.3"
-django = "*"
+django = "==3.2"
 django_rest_framework = "*"
 django_redis = "*"
 django-cors-headers = "*"
